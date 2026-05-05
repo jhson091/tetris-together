@@ -21,6 +21,7 @@ const DEFAULT_SETTINGS: RoomSettings = {
 
 const NEXT_QUEUE_SIZE = 5
 const GRAVITY_MS = 1000
+const LOCK_DELAY_MS = 500
 const RECONNECT_GRACE_MS = 5 * 60 * 1000
 
 export class GameRoom {
@@ -39,6 +40,7 @@ export class GameRoom {
   private turnBlocksLeft = 0
   private turnTimer: NodeJS.Timeout | null = null
   private gravityTimer: NodeJS.Timeout | null = null
+  private lockDelayTimer: NodeJS.Timeout | null = null
   private turnTimeLeft = 0
   private totalLinesCleared = 0
 
@@ -273,10 +275,19 @@ export class GameRoom {
     if (!this.currentPiece) return
     if (isValidPosition(this.board, this.currentPiece, 0, 1)) {
       this.currentPiece = { ...this.currentPiece, y: this.currentPiece.y + 1 }
+      if (this.lockDelayTimer) { clearTimeout(this.lockDelayTimer); this.lockDelayTimer = null }
       this.broadcastState()
     } else {
-      this.lockAndProcess(false)
+      this.startLockDelay()
     }
+  }
+
+  private startLockDelay(): void {
+    if (this.lockDelayTimer) clearTimeout(this.lockDelayTimer)
+    this.lockDelayTimer = setTimeout(() => {
+      this.lockDelayTimer = null
+      if (this.currentPiece) this.lockAndProcess(false)
+    }, LOCK_DELAY_MS)
   }
 
   handleMove(socketId: string, direction: 'left' | 'right' | 'rotate'): void {
@@ -295,6 +306,10 @@ export class GameRoom {
       } else if (isValidPosition(this.board, this.currentPiece, 1, 0, newRot)) {
         this.currentPiece = { ...this.currentPiece, x: this.currentPiece.x + 1, rotation: newRot }
       }
+    }
+
+    if (this.currentPiece && !isValidPosition(this.board, this.currentPiece, 0, 1)) {
+      this.startLockDelay()
     }
 
     this.broadcastState()
@@ -489,6 +504,7 @@ export class GameRoom {
   private clearTimers(): void {
     if (this.turnTimer) { clearInterval(this.turnTimer); this.turnTimer = null }
     if (this.gravityTimer) { clearInterval(this.gravityTimer); this.gravityTimer = null }
+    if (this.lockDelayTimer) { clearTimeout(this.lockDelayTimer); this.lockDelayTimer = null }
   }
 
   destroy(): void {
