@@ -25,6 +25,8 @@ export default function HomeContent() {
     if (!playerName.trim()) { setError('닉네임을 입력해주세요'); return }
     setLoading(true); setError('')
     const socket = connectSocket()
+    socket.off('room_created'); socket.off('room_joined'); socket.off('room_error')
+    socket.emit('leave_room')
     socket.once('room_created', ({ code }) => {
       setLoading(false)
       router.push(`/room/${code}?name=${encodeURIComponent(playerName.trim())}&host=1`)
@@ -38,6 +40,8 @@ export default function HomeContent() {
     if (!joinCode.trim()) { setError('방 코드를 입력해주세요'); return }
     setLoading(true); setError('')
     const socket = connectSocket()
+    socket.off('room_created'); socket.off('room_joined'); socket.off('room_error')
+    socket.emit('leave_room')
     socket.once('room_joined', ({ code }) => {
       setLoading(false)
       router.push(`/room/${code}?name=${encodeURIComponent(playerName.trim())}`)
