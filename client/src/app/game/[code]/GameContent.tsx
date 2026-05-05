@@ -23,10 +23,7 @@ export default function GameContent() {
   const [gameOver, setGameOver] = useState<{ analysis: DeathAnalysis; rankings: RankingEntry[] } | null>(null)
   const [rematchVotes, setRematchVotes] = useState<{ votes: string[]; total: number } | null>(null)
   const [lineClearFlash, setLineClearFlash] = useState(false)
-  const [soundEnabled, setSoundEnabled] = useState(() => {
-    if (typeof window === 'undefined') return false
-    return localStorage.getItem('tetris-sound') === '1'
-  })
+  const [soundEnabled, setSoundEnabled] = useState(false)
 
   const soundRef = useRef(soundEnabled)
   useEffect(() => { soundRef.current = soundEnabled }, [soundEnabled])
@@ -110,9 +107,7 @@ export default function GameContent() {
   }, [gameState, myId, sendMove, sendHardDrop])
 
   function toggleSound() {
-    const next = !soundEnabled
-    setSoundEnabled(next)
-    localStorage.setItem('tetris-sound', next ? '1' : '0')
+    setSoundEnabled(prev => !prev)
   }
 
   if (gameOver) {
