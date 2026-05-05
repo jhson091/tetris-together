@@ -208,6 +208,26 @@ export default function GameContent() {
               ))}
             </div>
           </div>
+
+          {/* Players */}
+          <div className="bg-gray-900 rounded-xl p-2">
+            <p className="text-xs text-gray-400 mb-2 text-center">플레이어</p>
+            <div className="space-y-1">
+              {gameState.players.map(p => (
+                <div key={p.id} className={`flex items-center gap-1 ${p.id === gameState.currentPlayerId ? 'opacity-100' : 'opacity-50'}`}>
+                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: p.color }} />
+                  <span className={`text-xs truncate ${p.id === myId ? 'font-bold text-white' : 'text-gray-300'}`}>{p.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Settings */}
+          <div className="bg-gray-900 rounded-xl p-2 text-center">
+            <p className="text-xs text-gray-400 mb-1">설정</p>
+            <p className="text-xs text-gray-300">블록 {gameState.blocksPerTurn}개</p>
+            <p className="text-xs text-gray-300">{gameState.turnTimeSeconds}초</p>
+          </div>
         </div>
       </div>
 

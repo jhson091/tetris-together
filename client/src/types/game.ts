@@ -49,6 +49,8 @@ export interface GameState {
   phase: GamePhase
   totalLinesCleared: number
   totalScore: number
+  blocksPerTurn: number
+  turnTimeSeconds: number
 }
 
 export interface PlayerContribution {

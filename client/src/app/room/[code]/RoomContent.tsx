@@ -102,7 +102,7 @@ export default function RoomContent() {
             {players.map((p, i) => (
               <div key={p.id} className="flex items-center gap-3">
                 <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: p.color }} />
-                <span className="font-medium">{p.name}</span>
+                <span className="font-medium text-white">{p.name}</span>
                 {i === 0 && <span className="text-xs text-yellow-400 ml-auto">방장</span>}
               </div>
             ))}

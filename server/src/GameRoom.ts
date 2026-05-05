@@ -547,6 +547,8 @@ export class GameRoom {
       phase: this.phase,
       totalLinesCleared: this.totalLinesCleared,
       totalScore: this.getTotalScore(),
+      blocksPerTurn: this.settings.blocksPerTurn,
+      turnTimeSeconds: this.settings.turnTimeSeconds,
     }
   }
 
