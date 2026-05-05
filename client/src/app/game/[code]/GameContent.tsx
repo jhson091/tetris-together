@@ -27,6 +27,7 @@ export default function GameContent() {
   const [rematchVotes, setRematchVotes] = useState<{ votes: string[]; total: number } | null>(null)
   const [lineClearFlash, setLineClearFlash] = useState(false)
   const [soundEnabled, setSoundEnabled] = useState(false)
+  const [gameAborted, setGameAborted] = useState(false)
   const [vw, setVw] = useState(390)
 
   useEffect(() => {
@@ -74,6 +75,7 @@ export default function GameContent() {
       setGameOver(null)
       setRematchVotes(null)
     })
+    socket.on('game_aborted', () => setGameAborted(true))
 
     return () => {
       socket.off('connect')
@@ -82,18 +84,29 @@ export default function GameContent() {
       socket.off('game_over')
       socket.off('rematch_vote_update')
       socket.off('rematch_start')
+      socket.off('game_aborted')
     }
   }, [code, playerName])
+
+  // Auto-redirect when game is aborted due to insufficient players
+  useEffect(() => {
+    if (!gameAborted) return
+    const t = setTimeout(() => {
+      getSocket().emit('leave_room')
+      router.push('/')
+    }, 2500)
+    return () => clearTimeout(t)
+  }, [gameAborted, router])
 
   // Recovery: if game_state says gameover but game_over event was missed, re-request it
   const recoveryRequestedRef = useRef(false)
   useEffect(() => {
-    if (gameState?.phase === 'gameover' && !gameOver && !recoveryRequestedRef.current) {
+    if (gameState?.phase === 'gameover' && !gameOver && !gameAborted && !recoveryRequestedRef.current) {
       recoveryRequestedRef.current = true
       getSocket().emit('get_state')
     }
     if (gameOver) recoveryRequestedRef.current = false
-  }, [gameState?.phase, gameOver])
+  }, [gameState?.phase, gameOver, gameAborted])
 
   // Turn-start notification
   useEffect(() => {
@@ -142,6 +155,17 @@ export default function GameContent() {
 
   function toggleSound() {
     setSoundEnabled(prev => !prev)
+  }
+
+  if (gameAborted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-950 px-4">
+        <div className="text-center space-y-3">
+          <p className="text-white text-lg font-medium">플레이 가능한 참가자가 없어서 게임이 중단됩니다.</p>
+          <p className="text-gray-400 text-sm">로비로 이동합니다...</p>
+        </div>
+      </div>
+    )
   }
 
   if (gameOver) {

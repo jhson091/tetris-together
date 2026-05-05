@@ -95,6 +95,7 @@ export interface ServerToClientEvents {
   rematch_vote_update: (data: { votes: string[]; total: number }) => void
   rematch_start: () => void
   settings_updated: (settings: { blocksPerTurn: number; turnTimeSeconds: number }) => void
+  game_aborted: (data: { reason: string }) => void
 }
 
 export interface ClientToServerEvents {

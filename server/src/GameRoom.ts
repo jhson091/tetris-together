@@ -104,7 +104,7 @@ export class GameRoom {
       this.players.delete(socketId)
 
       if (this.playerOrder.length <= 1) {
-        this.endGame()
+        this.endGame('insufficient_players')
         return
       }
 
@@ -133,27 +133,11 @@ export class GameRoom {
     this.broadcastState()
   }
 
-  // Temporary disconnect: keep player in room for RECONNECT_GRACE_MS
   disconnectPlayer(socketId: string, onExpired: () => void): void {
     const player = this.players.get(socketId)
     if (!player) return
-
-    if (this.phase === 'playing' || this.phase === 'gameover') {
-      this.removePlayer(socketId)
-      onExpired()
-      return
-    }
-
-    player.isConnected = false
-    const timer = setTimeout(() => {
-      this.disconnectTimers.delete(socketId)
-      this.removePlayer(socketId)
-      onExpired()
-    }, RECONNECT_GRACE_MS)
-    this.disconnectTimers.set(socketId, timer)
-
-    this.io.to(this.code).emit('player_left', { playerId: socketId, playerName: player.name })
-    this.broadcastState()
+    this.removePlayer(socketId)
+    onExpired()
   }
 
   findDisconnectedPlayer(playerName: string): string | null {
@@ -430,10 +414,16 @@ export class GameRoom {
     }, 2000)
   }
 
-  private endGame(): void {
+  private endGame(abortReason?: string): void {
     this.clearTimers()
     this.phase = 'gameover'
     this.currentPiece = null
+
+    if (abortReason === 'insufficient_players') {
+      this.io.to(this.code).emit('game_aborted', { reason: abortReason })
+      this.broadcastState()
+      return
+    }
 
     const analysis = this.buildDeathAnalysis()
     const entry = {
