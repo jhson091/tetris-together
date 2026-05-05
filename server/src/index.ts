@@ -112,6 +112,11 @@ io.on('connection', (socket) => {
     room?.handleMove(socket.id, direction)
   })
 
+  socket.on('soft_drop', () => {
+    const room = roomManager.getRoom(socket.id)
+    room?.handleSoftDrop(socket.id)
+  })
+
   socket.on('hard_drop', () => {
     const room = roomManager.getRoom(socket.id)
     room?.handleHardDrop(socket.id)

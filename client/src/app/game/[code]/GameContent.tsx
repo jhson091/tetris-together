@@ -87,6 +87,11 @@ export default function GameContent() {
     }
   }, [])
 
+  const sendSoftDrop = useCallback(() => {
+    getSocket().emit('soft_drop')
+    if (soundRef.current) playMove()
+  }, [])
+
   const sendHardDrop = useCallback(() => {
     getSocket().emit('hard_drop')
     if (soundRef.current) playHardDrop()
@@ -100,11 +105,12 @@ export default function GameContent() {
       if (e.key === 'ArrowLeft') { e.preventDefault(); sendMove('left') }
       else if (e.key === 'ArrowRight') { e.preventDefault(); sendMove('right') }
       else if (e.key === 'ArrowUp' || e.key === 'z' || e.key === 'Z') { e.preventDefault(); sendMove('rotate') }
-      else if (e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); sendHardDrop() }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); sendSoftDrop() }
+      else if (e.key === ' ') { e.preventDefault(); sendHardDrop() }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [gameState, myId, sendMove, sendHardDrop])
+  }, [gameState, myId, sendMove, sendSoftDrop, sendHardDrop])
 
   function toggleSound() {
     setSoundEnabled(prev => !prev)
@@ -194,28 +200,34 @@ export default function GameContent() {
       </div>
 
       {/* Mobile controls */}
-      <div className="flex justify-center gap-2 p-3 pb-5 bg-gray-900 border-t border-gray-800 md:hidden">
+      <div className="flex justify-center gap-1.5 p-3 pb-5 bg-gray-900 border-t border-gray-800 md:hidden">
         <button
           onPointerDown={() => sendMove('left')}
-          className="flex-1 max-w-[70px] h-14 bg-gray-700 hover:bg-gray-600 active:bg-gray-500 rounded-xl text-xl font-bold select-none transition-colors"
+          className="flex-1 h-14 bg-gray-700 hover:bg-gray-600 active:bg-gray-500 rounded-xl text-xl font-bold select-none transition-colors"
         >
           ←
         </button>
         <button
+          onPointerDown={sendSoftDrop}
+          className="flex-1 h-14 bg-gray-700 hover:bg-gray-600 active:bg-gray-500 rounded-xl text-xl font-bold select-none transition-colors"
+        >
+          ↓
+        </button>
+        <button
           onPointerDown={() => sendMove('right')}
-          className="flex-1 max-w-[70px] h-14 bg-gray-700 hover:bg-gray-600 active:bg-gray-500 rounded-xl text-xl font-bold select-none transition-colors"
+          className="flex-1 h-14 bg-gray-700 hover:bg-gray-600 active:bg-gray-500 rounded-xl text-xl font-bold select-none transition-colors"
         >
           →
         </button>
         <button
           onPointerDown={sendHardDrop}
-          className="flex-1 max-w-[80px] h-14 bg-cyan-700 hover:bg-cyan-600 active:bg-cyan-500 rounded-xl text-xl font-bold select-none transition-colors"
+          className="flex-1 h-14 bg-cyan-700 hover:bg-cyan-600 active:bg-cyan-500 rounded-xl text-xl font-bold select-none transition-colors"
         >
           ⬇
         </button>
         <button
           onPointerDown={() => sendMove('rotate')}
-          className="flex-1 max-w-[70px] h-14 bg-purple-700 hover:bg-purple-600 active:bg-purple-500 rounded-xl text-xl font-bold select-none transition-colors"
+          className="flex-1 h-14 bg-purple-700 hover:bg-purple-600 active:bg-purple-500 rounded-xl text-xl font-bold select-none transition-colors"
         >
           ↺
         </button>

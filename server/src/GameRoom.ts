@@ -315,6 +315,17 @@ export class GameRoom {
     this.broadcastState()
   }
 
+  handleSoftDrop(socketId: string): void {
+    if (!this.currentPiece || this.getCurrentPlayerId() !== socketId) return
+    if (isValidPosition(this.board, this.currentPiece, 0, 1)) {
+      this.currentPiece = { ...this.currentPiece, y: this.currentPiece.y + 1 }
+      if (this.lockDelayTimer) { clearTimeout(this.lockDelayTimer); this.lockDelayTimer = null }
+      this.broadcastState()
+    } else {
+      this.startLockDelay()
+    }
+  }
+
   handleHardDrop(socketId: string): void {
     if (!this.currentPiece || this.getCurrentPlayerId() !== socketId) return
     this.lockAndProcess(true)
@@ -436,39 +447,66 @@ export class GameRoom {
   }
 
   private buildDeathAnalysis(): DeathAnalysis {
-    // Build name lookup from turn history (survives player disconnect)
+    // Build name/color lookup from turn history (survives player disconnect)
     const playerNames: Record<string, string> = {}
+    const playerColors: Record<string, string> = {}
     for (const entry of this.turnHistory) {
       playerNames[entry.playerId] = entry.playerName
     }
-
-    const blame: Record<string, number> = {}
-    for (const entry of this.turnHistory) {
-      blame[entry.playerId] = (blame[entry.playerId] ?? 0) + entry.holesCreated
+    for (const [id, player] of this.players.entries()) {
+      playerColors[id] = player.color
     }
 
-    let mostBlamePlayerId = ''
-    let maxHoles = -1
-    for (const [id, holes] of Object.entries(blame)) {
-      if (holes > maxHoles) {
-        maxHoles = holes
-        mostBlamePlayerId = id
+    // Aggregate per-player stats
+    const holesMap: Record<string, number> = {}
+    const linesMap: Record<string, number> = {}
+    for (const entry of this.turnHistory) {
+      holesMap[entry.playerId] = (holesMap[entry.playerId] ?? 0) + entry.holesCreated
+      linesMap[entry.playerId] = (linesMap[entry.playerId] ?? 0) + entry.linesCleared
+    }
+
+    const playerIds = [...new Set(this.turnHistory.map(e => e.playerId))]
+    const playerContributions = playerIds
+      .map(id => {
+        const holes = holesMap[id] ?? 0
+        const lines = linesMap[id] ?? 0
+        const p = this.players.get(id)
+        return {
+          playerId: id,
+          playerName: p?.name ?? playerNames[id] ?? 'Unknown',
+          color: p?.color ?? playerColors[id] ?? '#ffffff',
+          linesCleared: lines,
+          holesCreated: holes,
+          contributionScore: lines * 2 - holes,
+        }
+      })
+      .sort((a, b) => b.contributionScore - a.contributionScore)
+
+    if (playerContributions.length === 0) {
+      return {
+        turnHistory: this.turnHistory,
+        playerContributions: [],
+        mostBlamePlayerIds: [],
+        mostBlamePlayerNames: [],
+        mvpPlayerIds: [],
+        mvpPlayerNames: [],
+        totalScore: this.getTotalScore(),
       }
     }
 
-    // Fallback: if no holes created, blame whoever played last
-    if (!mostBlamePlayerId && this.turnHistory.length > 0) {
-      const last = this.turnHistory[this.turnHistory.length - 1]
-      mostBlamePlayerId = last.playerId
-    }
+    const maxScore = playerContributions[0].contributionScore
+    const minScore = playerContributions[playerContributions.length - 1].contributionScore
 
-    const blamedPlayer = this.players.get(mostBlamePlayerId)
-    const blamedName = blamedPlayer?.name ?? playerNames[mostBlamePlayerId] ?? 'Unknown'
+    const mvp = playerContributions.filter(c => c.contributionScore === maxScore)
+    const blame = playerContributions.filter(c => c.contributionScore === minScore)
 
     return {
       turnHistory: this.turnHistory,
-      mostBlamePlayerId,
-      mostBlamePlayerName: blamedName,
+      playerContributions,
+      mostBlamePlayerIds: blame.map(c => c.playerId),
+      mostBlamePlayerNames: blame.map(c => c.playerName),
+      mvpPlayerIds: mvp.map(c => c.playerId),
+      mvpPlayerNames: mvp.map(c => c.playerName),
       totalScore: this.getTotalScore(),
     }
   }

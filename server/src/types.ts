@@ -51,10 +51,22 @@ export interface GameState {
   totalScore: number
 }
 
+export interface PlayerContribution {
+  playerId: string
+  playerName: string
+  color: string
+  linesCleared: number
+  holesCreated: number
+  contributionScore: number
+}
+
 export interface DeathAnalysis {
   turnHistory: TurnHistoryEntry[]
-  mostBlamePlayerId: string
-  mostBlamePlayerName: string
+  playerContributions: PlayerContribution[]
+  mostBlamePlayerIds: string[]
+  mostBlamePlayerNames: string[]
+  mvpPlayerIds: string[]
+  mvpPlayerNames: string[]
   totalScore: number
 }
 
@@ -118,6 +130,7 @@ export interface ClientToServerEvents {
   rejoin_room: (payload: RejoinRoomPayload) => void
   start_game: () => void
   move: (payload: MovePayload) => void
+  soft_drop: () => void
   hard_drop: () => void
   vote_rematch: () => void
   leave_room: () => void
