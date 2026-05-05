@@ -8,6 +8,7 @@ import TetrisBoard from '@/components/TetrisBoard'
 import NextPiecePreview from '@/components/NextPiecePreview'
 import GameOverScreen from '@/components/GameOverScreen'
 import DPad from '@/components/DPad'
+import RotateButton from '@/components/RotateButton'
 import HardDropButton from '@/components/HardDropButton'
 import {
   playMove, playRotate, playHardDrop, playClear, playTurnStart, playGameOver,
@@ -232,7 +233,7 @@ export default function GameContent() {
       </div>
 
       {/* Mobile controls */}
-      <div className="flex items-center justify-between px-8 py-3 pb-10 md:hidden">
+      <div className="flex items-center justify-between px-6 py-3 pb-10 md:hidden">
         <DPad
           translucent
           size={52}
@@ -245,19 +246,26 @@ export default function GameContent() {
             getSocket().emit('soft_drop')
             if (!held && soundRef.current) playMove()
           }}
-          onRotate={() => {
-            getSocket().emit('move', { direction: 'rotate' })
-            if (soundRef.current) playRotate()
-          }}
         />
-        <HardDropButton
-          translucent
-          size={78}
-          onHardDrop={() => {
-            getSocket().emit('hard_drop')
-            if (soundRef.current) playHardDrop()
-          }}
-        />
+        <div className="flex gap-3">
+          <RotateButton
+            translucent
+            size={78}
+            direction="cw"
+            onRotate={() => {
+              getSocket().emit('move', { direction: 'rotate' })
+              if (soundRef.current) playRotate()
+            }}
+          />
+          <HardDropButton
+            translucent
+            size={78}
+            onHardDrop={() => {
+              getSocket().emit('hard_drop')
+              if (soundRef.current) playHardDrop()
+            }}
+          />
+        </div>
       </div>
     </main>
   )

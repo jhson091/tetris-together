@@ -65,7 +65,7 @@ export default function HomeContent() {
         {mode === 'home' && (
           <div className="space-y-3">
             <button onClick={() => setMode('create')} className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 rounded-xl font-bold text-lg transition-colors">방 만들기</button>
-            <button onClick={() => setMode('join')} className="w-full py-4 bg-gray-700 hover:bg-gray-600 rounded-xl font-bold text-lg transition-colors">방 입장하기</button>
+            <button onClick={() => setMode('join')} className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 rounded-xl font-bold text-lg transition-colors">방 입장하기</button>
           </div>
         )}
 

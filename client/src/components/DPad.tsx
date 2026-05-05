@@ -9,7 +9,6 @@ interface DPadProps {
   accent?: string
   onMove: (params: { dx: -1 | 1; held: boolean }) => void
   onSoftDrop: (held: boolean) => void
-  onRotate: () => void
 }
 
 const DAS_DELAY = 180
@@ -22,7 +21,6 @@ export default function DPad({
   accent,
   onMove,
   onSoftDrop,
-  onRotate,
 }: DPadProps) {
   const dasRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const arrRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -47,26 +45,7 @@ export default function DPad({
   const s = size
 
   return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: `repeat(3, ${s}px)`,
-        gridTemplateRows: `repeat(2, ${s}px)`,
-        gap: `${gap}px`,
-      }}
-    >
-      {/* Row 0: only center = rotate */}
-      <div style={{ width: s, height: s }} />
-      <button
-        style={{ width: s, height: s }}
-        className={btnBase}
-        onPointerDown={(e) => { e.preventDefault(); onRotate() }}
-      >
-        ↑
-      </button>
-      <div style={{ width: s, height: s }} />
-
-      {/* Row 1: left, soft-drop, right */}
+    <div style={{ display: 'flex', gap: `${gap}px` }}>
       <button
         style={{ width: s, height: s }}
         className={btnBase}

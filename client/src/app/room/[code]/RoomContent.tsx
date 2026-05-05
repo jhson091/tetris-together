@@ -26,7 +26,11 @@ export default function RoomContent() {
     socket.on('connect', () => {
       socket.emit('rejoin_room', { code, playerName })
     })
-    socket.on('game_state', (state) => setPlayers(state.players))
+    socket.on('game_state', (state) => {
+      setPlayers(state.players)
+      setBlocksPerTurn(state.blocksPerTurn)
+      setTurnTimeSeconds(state.turnTimeSeconds)
+    })
     socket.on('settings_updated', (s) => {
       setBlocksPerTurn(s.blocksPerTurn)
       setTurnTimeSeconds(s.turnTimeSeconds)
