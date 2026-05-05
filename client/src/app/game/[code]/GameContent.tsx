@@ -191,7 +191,7 @@ export default function GameContent() {
       </div>
 
       {/* Game area */}
-      <div className="flex-1 flex items-center justify-center p-2 gap-3">
+      <div className="flex-1 flex items-center justify-center pt-2 px-2 pb-1 gap-3">
         {/* Board */}
         <div className={`relative transition-all ${lineClearFlash ? 'brightness-150' : ''}`}>
           <TetrisBoard
@@ -249,7 +249,7 @@ export default function GameContent() {
       </div>
 
       {/* Mobile controls */}
-      <div className="flex items-center justify-between px-4 py-3 pb-10 md:hidden">
+      <div className="flex items-center justify-between px-4 pt-1 pb-10 md:hidden">
         <DPad
           translucent
           size={btnSize}
