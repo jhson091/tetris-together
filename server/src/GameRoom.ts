@@ -137,7 +137,7 @@ export class GameRoom {
     const player = this.players.get(socketId)
     if (!player) return
 
-    if (this.phase === 'playing') {
+    if (this.phase === 'playing' || this.phase === 'gameover') {
       this.removePlayer(socketId)
       onExpired()
       return
