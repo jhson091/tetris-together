@@ -193,6 +193,12 @@ export default function RoomContent() {
             방장이 게임을 시작할 때까지 기다려주세요
           </div>
         )}
+        <button
+          onClick={() => { getSocket().emit('leave_room'); router.push('/') }}
+          className="w-full py-3 bg-gray-800 hover:bg-gray-700 rounded-xl font-bold transition-colors text-gray-400"
+        >
+          로비로 나가기
+        </button>
       </div>
     </main>
   )
