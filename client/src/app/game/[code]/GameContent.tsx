@@ -7,6 +7,8 @@ import { GameState, DeathAnalysis, RankingEntry } from '@/types/game'
 import TetrisBoard from '@/components/TetrisBoard'
 import NextPiecePreview from '@/components/NextPiecePreview'
 import GameOverScreen from '@/components/GameOverScreen'
+import DPad from '@/components/DPad'
+import HardDropButton from '@/components/HardDropButton'
 import {
   playMove, playRotate, playHardDrop, playClear, playTurnStart, playGameOver,
 } from '@/lib/sounds'
@@ -211,36 +213,31 @@ export default function GameContent() {
 
       {/* Mobile controls */}
       <div className="flex items-center justify-between px-8 py-3 pb-10 md:hidden">
-        {/* D-pad */}
-        <div className="grid grid-cols-3 gap-1.5">
-          <div className="w-12 h-12" />
-          <button
-            onPointerDown={() => sendMove('rotate')}
-            className="w-12 h-12 bg-white/15 active:bg-white/35 rounded-xl text-lg select-none flex items-center justify-center"
-          >↺</button>
-          <div className="w-12 h-12" />
-          <button
-            onPointerDown={() => sendMove('left')}
-            className="w-12 h-12 bg-white/15 active:bg-white/35 rounded-xl text-lg select-none flex items-center justify-center"
-          >←</button>
-          <div className="w-12 h-12" />
-          <button
-            onPointerDown={() => sendMove('right')}
-            className="w-12 h-12 bg-white/15 active:bg-white/35 rounded-xl text-lg select-none flex items-center justify-center"
-          >→</button>
-          <div className="w-12 h-12" />
-          <button
-            onPointerDown={sendSoftDrop}
-            className="w-12 h-12 bg-white/15 active:bg-white/35 rounded-xl text-lg select-none flex items-center justify-center"
-          >↓</button>
-          <div className="w-12 h-12" />
-        </div>
-
-        {/* Hard drop */}
-        <button
-          onPointerDown={sendHardDrop}
-          className="w-20 h-20 bg-cyan-400/20 active:bg-cyan-400/50 rounded-full text-3xl select-none flex items-center justify-center"
-        >⬇</button>
+        <DPad
+          translucent
+          size={52}
+          gap={5}
+          onMove={({ dx, held }) => {
+            getSocket().emit('move', { direction: dx === -1 ? 'left' : 'right' })
+            if (!held && soundRef.current) playMove()
+          }}
+          onSoftDrop={(held) => {
+            getSocket().emit('soft_drop')
+            if (!held && soundRef.current) playMove()
+          }}
+          onRotate={() => {
+            getSocket().emit('move', { direction: 'rotate' })
+            if (soundRef.current) playRotate()
+          }}
+        />
+        <HardDropButton
+          translucent
+          size={78}
+          onHardDrop={() => {
+            getSocket().emit('hard_drop')
+            if (soundRef.current) playHardDrop()
+          }}
+        />
       </div>
     </main>
   )
