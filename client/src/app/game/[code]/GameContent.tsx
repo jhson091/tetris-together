@@ -3,10 +3,9 @@
 import { useEffect, useCallback, useState } from 'react'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { getSocket } from '@/lib/socket'
-import { GameState, DeathAnalysis, RankingEntry, TetrominoType } from '@/types/game'
+import { GameState, DeathAnalysis, RankingEntry } from '@/types/game'
 import TetrisBoard from '@/components/TetrisBoard'
 import NextPiecePreview from '@/components/NextPiecePreview'
-import VotingPanel from '@/components/VotingPanel'
 import GameOverScreen from '@/components/GameOverScreen'
 
 export default function GameContent() {
@@ -25,7 +24,12 @@ export default function GameContent() {
   useEffect(() => {
     const socket = getSocket()
     if (socket.id) setMyId(socket.id)
-    socket.on('connect', () => setMyId(socket.id ?? ''))
+
+    socket.on('connect', () => {
+      setMyId(socket.id ?? '')
+      socket.emit('rejoin_room', { code, playerName })
+    })
+
     socket.emit('get_state')
 
     socket.on('game_state', (state) => setGameState(state))
@@ -41,13 +45,14 @@ export default function GameContent() {
     })
 
     return () => {
+      socket.off('connect')
       socket.off('game_state')
       socket.off('line_clear')
       socket.off('game_over')
       socket.off('rematch_vote_update')
       socket.off('rematch_start')
     }
-  }, [])
+  }, [code, playerName])
 
   const sendMove = useCallback((direction: 'left' | 'right' | 'rotate') => {
     getSocket().emit('move', { direction })
@@ -57,11 +62,6 @@ export default function GameContent() {
     getSocket().emit('hard_drop')
   }, [])
 
-  const sendVote = useCallback((piece: TetrominoType) => {
-    getSocket().emit('vote_block', { piece })
-  }, [])
-
-  // Keyboard controls
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (!gameState || gameState.phase !== 'playing') return
@@ -109,7 +109,10 @@ export default function GameContent() {
             </div>
           ))}
         </div>
-        <div className="text-xs text-gray-400">{gameState.totalLinesCleared} lines</div>
+        <div className="flex items-center gap-3 text-xs text-gray-400">
+          <span className="text-cyan-400 font-bold">{gameState.totalScore.toLocaleString()}점</span>
+          <span>{gameState.totalLinesCleared} lines</span>
+        </div>
       </div>
 
       {/* Game area */}
@@ -146,16 +149,6 @@ export default function GameContent() {
               ))}
             </div>
           </div>
-
-          {/* Vote */}
-          {gameState.vote && (
-            <VotingPanel
-              vote={gameState.vote}
-              myId={myId}
-              currentPlayerId={gameState.currentPlayerId}
-              onVote={sendVote}
-            />
-          )}
         </div>
       </div>
 

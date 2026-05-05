@@ -27,12 +27,6 @@ export interface PlayerInfo {
 
 export type GamePhase = 'waiting' | 'playing' | 'gameover'
 
-export interface VoteState {
-  candidates: TetrominoType[]
-  votes: Record<string, TetrominoType>
-  endsAt: number
-}
-
 export interface TurnHistoryEntry {
   turnIndex: number
   playerId: string
@@ -54,7 +48,7 @@ export interface GameState {
   players: PlayerInfo[]
   phase: GamePhase
   totalLinesCleared: number
-  vote: VoteState | null
+  totalScore: number
 }
 
 export interface DeathAnalysis {
@@ -76,8 +70,6 @@ export interface ServerToClientEvents {
   game_state: (state: GameState) => void
   turn_change: (data: { currentPlayerId: string; turnTimeLeft: number; turnBlocksLeft: number }) => void
   line_clear: (data: { playerId: string; lines: number; score: number; totalScore: number }) => void
-  vote_start: (vote: VoteState) => void
-  vote_update: (votes: Record<string, TetrominoType>) => void
   player_left: (data: { playerId: string; playerName: string }) => void
   game_over: (data: { analysis: DeathAnalysis; rankings: RankingEntry[] }) => void
   room_created: (data: { code: string; playerId: string }) => void
@@ -94,10 +86,10 @@ export interface ServerToClientEvents {
 export interface ClientToServerEvents {
   create_room: (payload: { playerName: string; settings?: { blocksPerTurn?: number } }) => void
   join_room: (payload: { code: string; playerName: string }) => void
+  rejoin_room: (payload: { code: string; playerName: string }) => void
   start_game: () => void
   move: (payload: { direction: 'left' | 'right' | 'rotate' }) => void
   hard_drop: () => void
-  vote_block: (payload: { piece: TetrominoType }) => void
   vote_rematch: () => void
   leave_room: () => void
   get_state: () => void

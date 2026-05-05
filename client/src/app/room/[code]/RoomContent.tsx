@@ -23,6 +23,9 @@ export default function RoomContent() {
     const socket = connectSocket()
     socket.emit('get_state')
 
+    socket.on('connect', () => {
+      socket.emit('rejoin_room', { code, playerName })
+    })
     socket.on('game_state', (state) => setPlayers(state.players))
     socket.on('settings_updated', (s) => {
       setBlocksPerTurn(s.blocksPerTurn)
@@ -35,6 +38,7 @@ export default function RoomContent() {
     socket.on('room_error', (msg) => setError(msg))
 
     return () => {
+      socket.off('connect')
       socket.off('game_state')
       socket.off('settings_updated')
       socket.off('host_changed')

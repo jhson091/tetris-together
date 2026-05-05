@@ -2,7 +2,7 @@ import { Server } from 'socket.io'
 import {
   Board, DeathAnalysis, GamePhase, GameState, Piece, PlayerInfo,
   RoomSettings, ServerToClientEvents, ClientToServerEvents,
-  TurnHistoryEntry, VoteState, TetrominoType,
+  TurnHistoryEntry, TetrominoType,
 } from './types'
 import { rankingManager } from './RankingManager'
 import {
@@ -20,6 +20,8 @@ const DEFAULT_SETTINGS: RoomSettings = {
 }
 
 const NEXT_QUEUE_SIZE = 5
+const GRAVITY_MS = 1000
+const RECONNECT_GRACE_MS = 5 * 60 * 1000
 
 export class GameRoom {
   code: string
@@ -36,11 +38,9 @@ export class GameRoom {
   private currentPlayerIndex = 0
   private turnBlocksLeft = 0
   private turnTimer: NodeJS.Timeout | null = null
+  private gravityTimer: NodeJS.Timeout | null = null
   private turnTimeLeft = 0
   private totalLinesCleared = 0
-
-  private vote: VoteState | null = null
-  private voteTimer: NodeJS.Timeout | null = null
 
   private turnHistory: TurnHistoryEntry[] = []
   private turnIndex = 0
@@ -49,6 +49,7 @@ export class GameRoom {
   private linesThisTurn = 0
 
   private rematchVotes: Set<string> = new Set()
+  private disconnectTimers: Map<string, NodeJS.Timeout> = new Map()
 
   constructor(code: string, io: IoServer, hostId: string, settings?: Partial<RoomSettings>) {
     this.code = code
@@ -86,6 +87,10 @@ export class GameRoom {
   }
 
   removePlayer(socketId: string): void {
+    // Cancel any pending disconnect timer
+    const timer = this.disconnectTimers.get(socketId)
+    if (timer) { clearTimeout(timer); this.disconnectTimers.delete(socketId) }
+
     const player = this.players.get(socketId)
     if (!player) return
     player.isConnected = false
@@ -123,6 +128,56 @@ export class GameRoom {
 
     this.io.to(this.code).emit('player_left', { playerId: socketId, playerName: player.name })
     this.broadcastState()
+  }
+
+  // Temporary disconnect: keep player in room for RECONNECT_GRACE_MS
+  disconnectPlayer(socketId: string, onExpired: () => void): void {
+    const player = this.players.get(socketId)
+    if (!player) return
+
+    if (this.phase === 'playing') {
+      this.removePlayer(socketId)
+      onExpired()
+      return
+    }
+
+    player.isConnected = false
+    const timer = setTimeout(() => {
+      this.disconnectTimers.delete(socketId)
+      this.removePlayer(socketId)
+      onExpired()
+    }, RECONNECT_GRACE_MS)
+    this.disconnectTimers.set(socketId, timer)
+
+    this.io.to(this.code).emit('player_left', { playerId: socketId, playerName: player.name })
+    this.broadcastState()
+  }
+
+  findDisconnectedPlayer(playerName: string): string | null {
+    for (const [id, player] of this.players.entries()) {
+      if (player.name === playerName && !player.isConnected) return id
+    }
+    return null
+  }
+
+  reconnectPlayer(oldSocketId: string, newSocketId: string): PlayerInfo | null {
+    const player = this.players.get(oldSocketId)
+    if (!player || player.isConnected) return null
+
+    const timer = this.disconnectTimers.get(oldSocketId)
+    if (timer) { clearTimeout(timer); this.disconnectTimers.delete(oldSocketId) }
+
+    player.id = newSocketId
+    player.isConnected = true
+    this.players.delete(oldSocketId)
+    this.players.set(newSocketId, player)
+
+    const orderIdx = this.playerOrder.indexOf(oldSocketId)
+    if (orderIdx !== -1) this.playerOrder[orderIdx] = newSocketId
+
+    if (this.hostId === oldSocketId) this.hostId = newSocketId
+
+    return player
   }
 
   getPlayerCount(): number {
@@ -174,10 +229,9 @@ export class GameRoom {
     this.turnTimeLeft = this.settings.turnTimeSeconds
     this.boardAtTurnStart = this.board.map(row => [...row])
     this.holesAtTurnStart = countHoles(this.board)
-
     this.linesThisTurn = 0
+
     this.spawnNextPiece()
-    this.startVote()
     this.broadcastState()
 
     this.io.to(this.code).emit('turn_change', {
@@ -194,6 +248,10 @@ export class GameRoom {
         this.broadcastState()
       }
     }, 1000)
+
+    this.gravityTimer = setInterval(() => {
+      this.gravityTick()
+    }, GRAVITY_MS)
   }
 
   private spawnNextPiece(): void {
@@ -211,65 +269,14 @@ export class GameRoom {
     }
   }
 
-  private startVote(): void {
-    if (this.voteTimer) clearTimeout(this.voteTimer)
-
-    const candidates: TetrominoType[] = []
-    const all: TetrominoType[] = ['I', 'O', 'T', 'S', 'Z', 'J', 'L']
-    while (candidates.length < 4) {
-      const pick = all[Math.floor(Math.random() * all.length)]
-      if (!candidates.includes(pick)) candidates.push(pick)
-    }
-
-    this.vote = {
-      candidates,
-      votes: {},
-      endsAt: Date.now() + 10000,
-    }
-
-    this.io.to(this.code).emit('vote_start', this.vote)
-
-    this.voteTimer = setTimeout(() => {
-      this.resolveVote()
-    }, 10000)
-  }
-
-  private resolveVote(): void {
-    if (!this.vote) return
-
-    const tally: Record<string, number> = {}
-    for (const piece of Object.values(this.vote.votes)) {
-      tally[piece] = (tally[piece] ?? 0) + 1
-    }
-
-    let winner: TetrominoType | null = null
-    let maxVotes = 0
-    const tied: TetrominoType[] = []
-
-    for (const [piece, count] of Object.entries(tally)) {
-      if (count > maxVotes) {
-        maxVotes = count
-        winner = piece as TetrominoType
-        tied.length = 0
-        tied.push(piece as TetrominoType)
-      } else if (count === maxVotes) {
-        tied.push(piece as TetrominoType)
-      }
-    }
-
-    if (tied.length > 1 || winner === null) {
-      const candidates = winner === null ? this.vote.candidates : tied
-      winner = candidates[Math.floor(Math.random() * candidates.length)]
-    }
-
-    // Inject voted piece as next-next piece (doesn't affect the currently spawned piece)
-    if (this.nextPieces.length > 0) {
-      this.nextPieces[0] = winner
+  private gravityTick(): void {
+    if (!this.currentPiece) return
+    if (isValidPosition(this.board, this.currentPiece, 0, 1)) {
+      this.currentPiece = { ...this.currentPiece, y: this.currentPiece.y + 1 }
+      this.broadcastState()
     } else {
-      this.nextPieces.push(winner)
+      this.lockAndProcess(false)
     }
-
-    this.vote = null
   }
 
   handleMove(socketId: string, direction: 'left' | 'right' | 'rotate'): void {
@@ -284,10 +291,8 @@ export class GameRoom {
       if (isValidPosition(this.board, this.currentPiece, 0, 0, newRot)) {
         this.currentPiece = { ...this.currentPiece, rotation: newRot }
       } else if (isValidPosition(this.board, this.currentPiece, -1, 0, newRot)) {
-        // Wall kick left
         this.currentPiece = { ...this.currentPiece, x: this.currentPiece.x - 1, rotation: newRot }
       } else if (isValidPosition(this.board, this.currentPiece, 1, 0, newRot)) {
-        // Wall kick right
         this.currentPiece = { ...this.currentPiece, x: this.currentPiece.x + 1, rotation: newRot }
       }
     }
@@ -297,17 +302,20 @@ export class GameRoom {
 
   handleHardDrop(socketId: string): void {
     if (!this.currentPiece || this.getCurrentPlayerId() !== socketId) return
-    this.placePiece()
+    this.lockAndProcess(true)
   }
 
   private autoHardDrop(): void {
-    if (this.currentPiece) this.placePiece()
+    if (this.currentPiece) this.lockAndProcess(true)
   }
 
-  private placePiece(): void {
+  private lockAndProcess(useHardDrop: boolean): void {
     if (!this.currentPiece) return
 
-    const { piece } = hardDrop(this.board, this.currentPiece)
+    const piece = useHardDrop
+      ? hardDrop(this.board, this.currentPiece).piece
+      : this.currentPiece
+
     this.board = lockPiece(this.board, piece)
     this.currentPiece = null
 
@@ -365,14 +373,6 @@ export class GameRoom {
     this.startTurn()
   }
 
-  handleVote(socketId: string, piece: TetrominoType): void {
-    if (!this.vote || socketId === this.getCurrentPlayerId()) return
-    if (!this.vote.candidates.includes(piece)) return
-
-    this.vote.votes[socketId] = piece
-    this.io.to(this.code).emit('vote_update', this.vote.votes)
-  }
-
   handleRematchVote(socketId: string): void {
     if (this.phase !== 'gameover') return
     this.rematchVotes.add(socketId)
@@ -421,6 +421,12 @@ export class GameRoom {
   }
 
   private buildDeathAnalysis(): DeathAnalysis {
+    // Build name lookup from turn history (survives player disconnect)
+    const playerNames: Record<string, string> = {}
+    for (const entry of this.turnHistory) {
+      playerNames[entry.playerId] = entry.playerName
+    }
+
     const blame: Record<string, number> = {}
     for (const entry of this.turnHistory) {
       blame[entry.playerId] = (blame[entry.playerId] ?? 0) + entry.holesCreated
@@ -435,11 +441,19 @@ export class GameRoom {
       }
     }
 
+    // Fallback: if no holes created, blame whoever played last
+    if (!mostBlamePlayerId && this.turnHistory.length > 0) {
+      const last = this.turnHistory[this.turnHistory.length - 1]
+      mostBlamePlayerId = last.playerId
+    }
+
     const blamedPlayer = this.players.get(mostBlamePlayerId)
+    const blamedName = blamedPlayer?.name ?? playerNames[mostBlamePlayerId] ?? 'Unknown'
+
     return {
       turnHistory: this.turnHistory,
       mostBlamePlayerId,
-      mostBlamePlayerName: blamedPlayer?.name ?? 'Unknown',
+      mostBlamePlayerName: blamedName,
       totalScore: this.getTotalScore(),
     }
   }
@@ -468,16 +482,18 @@ export class GameRoom {
       players: Array.from(this.players.values()),
       phase: this.phase,
       totalLinesCleared: this.totalLinesCleared,
-      vote: this.vote,
+      totalScore: this.getTotalScore(),
     }
   }
 
   private clearTimers(): void {
     if (this.turnTimer) { clearInterval(this.turnTimer); this.turnTimer = null }
-    if (this.voteTimer) { clearTimeout(this.voteTimer); this.voteTimer = null }
+    if (this.gravityTimer) { clearInterval(this.gravityTimer); this.gravityTimer = null }
   }
 
   destroy(): void {
     this.clearTimers()
+    for (const timer of this.disconnectTimers.values()) clearTimeout(timer)
+    this.disconnectTimers.clear()
   }
 }

@@ -63,6 +63,45 @@ export class RoomManager {
     this.socketToRoom.delete(socketId)
   }
 
+  disconnectPlayer(socketId: string): void {
+    const code = this.socketToRoom.get(socketId)
+    if (!code) return
+
+    const room = this.rooms.get(code)
+    if (!room) { this.socketToRoom.delete(socketId); return }
+
+    room.disconnectPlayer(socketId, () => {
+      this.socketToRoom.delete(socketId)
+      if (room.isEmpty()) {
+        room.destroy()
+        this.rooms.delete(code)
+      }
+    })
+
+    // Keep socketToRoom entry alive for game-in-progress case
+    // (disconnectPlayer calls removePlayer immediately for playing phase,
+    //  which doesn't call this callback, so we clean up here)
+    if (!room.isInProgress()) return
+    this.socketToRoom.delete(socketId)
+  }
+
+  reconnectPlayer(newSocketId: string, code: string, playerName: string): GameRoom | null {
+    const upperCode = code.toUpperCase()
+    const room = this.rooms.get(upperCode)
+    if (!room) return null
+
+    const oldSocketId = room.findDisconnectedPlayer(playerName)
+    if (!oldSocketId) return null
+
+    const player = room.reconnectPlayer(oldSocketId, newSocketId)
+    if (!player) return null
+
+    this.socketToRoom.delete(oldSocketId)
+    this.socketToRoom.set(newSocketId, upperCode)
+
+    return room
+  }
+
   getRoom(socketId: string): GameRoom | null {
     const code = this.socketToRoom.get(socketId)
     if (!code) return null

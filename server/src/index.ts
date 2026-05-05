@@ -42,7 +42,7 @@ io.on('connection', (socket) => {
 
   socket.on('join_room', ({ code, playerName }) => {
     const existing = roomManager.getRoomByCode(code)
-    if (existing && existing.hasPlayerWithName(playerName)) {
+    if (existing && existing.hasPlayerWithName(playerName) && !existing.findDisconnectedPlayer(playerName)) {
       socket.emit('room_error', `'${playerName}' 닉네임이 이미 사용 중입니다`)
       return
     }
@@ -62,6 +62,21 @@ io.on('connection', (socket) => {
     socket.emit('settings_updated', room.getSettings())
     socket.to(room.code).emit('player_joined', players.find(p => p.id === socket.id)!)
     io.to(room.code).emit('game_state', room.getState())
+  })
+
+  socket.on('rejoin_room', ({ code, playerName }) => {
+    const room = roomManager.reconnectPlayer(socket.id, code, playerName)
+    if (!room) return
+
+    socket.join(room.code)
+    socket.emit('room_joined', { code: room.code, playerId: socket.id, players: room.getState().players })
+    socket.emit('settings_updated', room.getSettings())
+    if (room.isHost(socket.id)) {
+      socket.emit('host_changed', socket.id)
+    }
+    socket.emit('game_state', room.getState())
+    io.to(room.code).emit('game_state', room.getState())
+    console.log(`[rejoin] ${playerName} reconnected to room ${code}`)
   })
 
   socket.on('start_game', () => {
@@ -102,11 +117,6 @@ io.on('connection', (socket) => {
     room?.handleHardDrop(socket.id)
   })
 
-  socket.on('vote_block', ({ piece }) => {
-    const room = roomManager.getRoom(socket.id)
-    room?.handleVote(socket.id, piece)
-  })
-
   socket.on('vote_rematch', () => {
     const room = roomManager.getRoom(socket.id)
     room?.handleRematchVote(socket.id)
@@ -119,7 +129,7 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     console.log(`[disconnect] ${socket.id}`)
-    roomManager.leaveRoom(socket.id)
+    roomManager.disconnectPlayer(socket.id)
   })
 })
 
