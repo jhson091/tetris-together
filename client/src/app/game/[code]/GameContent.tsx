@@ -67,6 +67,16 @@ export default function GameContent() {
     }
   }, [code, playerName])
 
+  // Recovery: if game_state says gameover but game_over event was missed, re-request it
+  const recoveryRequestedRef = useRef(false)
+  useEffect(() => {
+    if (gameState?.phase === 'gameover' && !gameOver && !recoveryRequestedRef.current) {
+      recoveryRequestedRef.current = true
+      getSocket().emit('get_state')
+    }
+    if (gameOver) recoveryRequestedRef.current = false
+  }, [gameState?.phase, gameOver])
+
   // Turn-start notification
   useEffect(() => {
     if (!gameState || gameState.phase !== 'playing') return

@@ -95,7 +95,10 @@ io.on('connection', (socket) => {
 
   socket.on('get_state', () => {
     const room = roomManager.getRoom(socket.id)
-    if (room) socket.emit('game_state', room.getState())
+    if (!room) return
+    socket.emit('game_state', room.getState())
+    const gameOver = room.getLastGameOver()
+    if (gameOver) socket.emit('game_over', gameOver)
   })
 
   socket.on('update_settings', ({ blocksPerTurn, turnTimeSeconds }) => {

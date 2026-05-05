@@ -1,7 +1,7 @@
 import { Server } from 'socket.io'
 import {
   Board, DeathAnalysis, GamePhase, GameState, Piece, PlayerInfo,
-  RoomSettings, ServerToClientEvents, ClientToServerEvents,
+  RankingEntry, RoomSettings, ServerToClientEvents, ClientToServerEvents,
   TurnHistoryEntry, TetrominoType,
 } from './types'
 import { rankingManager } from './RankingManager'
@@ -52,6 +52,7 @@ export class GameRoom {
 
   private rematchVotes: Set<string> = new Set()
   private disconnectTimers: Map<string, NodeJS.Timeout> = new Map()
+  private lastGameOver: { analysis: DeathAnalysis; rankings: RankingEntry[] } | null = null
 
   constructor(code: string, io: IoServer, hostId: string, settings?: Partial<RoomSettings>) {
     this.code = code
@@ -234,6 +235,8 @@ export class GameRoom {
     this.linesThisTurn = 0
 
     this.spawnNextPiece()
+    if (this.phase !== 'playing') return  // endGame() was called during spawn
+
     this.broadcastState()
 
     this.io.to(this.code).emit('turn_change', {
@@ -263,7 +266,9 @@ export class GameRoom {
 
     const type = this.nextPieces.shift()!
     const playerId = this.getCurrentPlayerId()
-    const player = this.players.get(playerId)!
+    const player = this.players.get(playerId)
+    if (!player) { this.endGame(); return }
+
     this.currentPiece = spawnPiece(type, playerId, player.color)
 
     if (!isValidPosition(this.board, this.currentPiece)) {
@@ -418,6 +423,7 @@ export class GameRoom {
     this.io.to(this.code).emit('rematch_start')
     this.phase = 'waiting'
     this.rematchVotes.clear()
+    this.lastGameOver = null
 
     setTimeout(() => {
       this.startGame()
@@ -442,6 +448,7 @@ export class GameRoom {
     rankingManager.addEntry(entry)
     const rankings = rankingManager.getTop20()
 
+    this.lastGameOver = { analysis, rankings }
     this.io.to(this.code).emit('game_over', { analysis, rankings })
     this.broadcastState()
   }
@@ -513,6 +520,10 @@ export class GameRoom {
 
   private getTotalScore(): number {
     return Array.from(this.players.values()).reduce((sum, p) => sum + p.score, 0)
+  }
+
+  getLastGameOver() {
+    return this.lastGameOver
   }
 
   private broadcastState(): void {
