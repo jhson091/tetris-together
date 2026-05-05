@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { connectSocket, getSocket } from '@/lib/socket'
 import { PlayerInfo } from '@/types/game'
@@ -19,10 +19,7 @@ export default function RoomContent() {
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
 
-  const goingToGameRef = useRef(false)
-
   useEffect(() => {
-    goingToGameRef.current = false
     const socket = connectSocket()
     socket.emit('get_state')
 
@@ -36,7 +33,6 @@ export default function RoomContent() {
     })
     socket.on('host_changed', (newHostId) => setIsHost(newHostId === socket.id))
     socket.on('game_started', () => {
-      goingToGameRef.current = true
       router.push(`/game/${code}?name=${encodeURIComponent(playerName)}`)
     })
     socket.on('room_error', (msg) => setError(msg))
@@ -48,9 +44,6 @@ export default function RoomContent() {
       socket.off('host_changed')
       socket.off('game_started')
       socket.off('room_error')
-      if (!goingToGameRef.current) {
-        socket.emit('leave_room')
-      }
     }
   }, [code, playerName, router])
 
