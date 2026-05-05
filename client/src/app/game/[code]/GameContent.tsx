@@ -1,12 +1,15 @@
 'use client'
 
-import { useEffect, useCallback, useState } from 'react'
+import { useEffect, useCallback, useState, useRef } from 'react'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { getSocket } from '@/lib/socket'
 import { GameState, DeathAnalysis, RankingEntry } from '@/types/game'
 import TetrisBoard from '@/components/TetrisBoard'
 import NextPiecePreview from '@/components/NextPiecePreview'
 import GameOverScreen from '@/components/GameOverScreen'
+import {
+  playMove, playRotate, playHardDrop, playClear, playTurnStart, playGameOver,
+} from '@/lib/sounds'
 
 export default function GameContent() {
   const router = useRouter()
@@ -20,6 +23,15 @@ export default function GameContent() {
   const [gameOver, setGameOver] = useState<{ analysis: DeathAnalysis; rankings: RankingEntry[] } | null>(null)
   const [rematchVotes, setRematchVotes] = useState<{ votes: string[]; total: number } | null>(null)
   const [lineClearFlash, setLineClearFlash] = useState(false)
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem('tetris-sound') === '1'
+  })
+
+  const soundRef = useRef(soundEnabled)
+  useEffect(() => { soundRef.current = soundEnabled }, [soundEnabled])
+
+  const prevPlayerIdRef = useRef('')
 
   useEffect(() => {
     const socket = getSocket()
@@ -33,11 +45,15 @@ export default function GameContent() {
     socket.emit('get_state')
 
     socket.on('game_state', (state) => setGameState(state))
-    socket.on('line_clear', () => {
+    socket.on('line_clear', (data) => {
       setLineClearFlash(true)
       setTimeout(() => setLineClearFlash(false), 300)
+      if (soundRef.current) playClear(data.lines)
     })
-    socket.on('game_over', (data) => setGameOver(data))
+    socket.on('game_over', (data) => {
+      setGameOver(data)
+      if (soundRef.current) playGameOver()
+    })
     socket.on('rematch_vote_update', (data) => setRematchVotes(data))
     socket.on('rematch_start', () => {
       setGameOver(null)
@@ -54,12 +70,29 @@ export default function GameContent() {
     }
   }, [code, playerName])
 
+  // Turn-start notification
+  useEffect(() => {
+    if (!gameState || gameState.phase !== 'playing') return
+    if (
+      gameState.currentPlayerId === myId &&
+      gameState.currentPlayerId !== prevPlayerIdRef.current
+    ) {
+      if (soundEnabled) playTurnStart()
+    }
+    prevPlayerIdRef.current = gameState.currentPlayerId
+  }, [gameState?.currentPlayerId, myId, soundEnabled])
+
   const sendMove = useCallback((direction: 'left' | 'right' | 'rotate') => {
     getSocket().emit('move', { direction })
+    if (soundRef.current) {
+      if (direction === 'rotate') playRotate()
+      else playMove()
+    }
   }, [])
 
   const sendHardDrop = useCallback(() => {
     getSocket().emit('hard_drop')
+    if (soundRef.current) playHardDrop()
   }, [])
 
   useEffect(() => {
@@ -75,6 +108,12 @@ export default function GameContent() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [gameState, myId, sendMove, sendHardDrop])
+
+  function toggleSound() {
+    const next = !soundEnabled
+    setSoundEnabled(next)
+    localStorage.setItem('tetris-sound', next ? '1' : '0')
+  }
 
   if (gameOver) {
     return (
@@ -112,6 +151,13 @@ export default function GameContent() {
         <div className="flex items-center gap-3 text-xs text-gray-400">
           <span className="text-cyan-400 font-bold">{gameState.totalScore.toLocaleString()}점</span>
           <span>{gameState.totalLinesCleared} lines</span>
+          <button
+            onClick={toggleSound}
+            className="text-base leading-none opacity-60 hover:opacity-100 transition-opacity"
+            title={soundEnabled ? '소리 끄기' : '소리 켜기'}
+          >
+            {soundEnabled ? '🔊' : '🔇'}
+          </button>
         </div>
       </div>
 
