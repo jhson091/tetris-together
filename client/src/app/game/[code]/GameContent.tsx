@@ -200,37 +200,37 @@ export default function GameContent() {
       </div>
 
       {/* Mobile controls */}
-      <div className="flex justify-center gap-1.5 p-3 pb-5 bg-gray-900 border-t border-gray-800 md:hidden">
-        <button
-          onPointerDown={() => sendMove('left')}
-          className="flex-1 h-14 bg-gray-700 hover:bg-gray-600 active:bg-gray-500 rounded-xl text-xl font-bold select-none transition-colors"
-        >
-          ←
-        </button>
-        <button
-          onPointerDown={sendSoftDrop}
-          className="flex-1 h-14 bg-gray-700 hover:bg-gray-600 active:bg-gray-500 rounded-xl text-xl font-bold select-none transition-colors"
-        >
-          ↓
-        </button>
-        <button
-          onPointerDown={() => sendMove('right')}
-          className="flex-1 h-14 bg-gray-700 hover:bg-gray-600 active:bg-gray-500 rounded-xl text-xl font-bold select-none transition-colors"
-        >
-          →
-        </button>
+      <div className="flex items-center justify-between px-8 py-3 pb-10 md:hidden">
+        {/* D-pad */}
+        <div className="grid grid-cols-3 gap-1.5">
+          <div className="w-12 h-12" />
+          <button
+            onPointerDown={() => sendMove('rotate')}
+            className="w-12 h-12 bg-white/15 active:bg-white/35 rounded-xl text-lg select-none flex items-center justify-center"
+          >↺</button>
+          <div className="w-12 h-12" />
+          <button
+            onPointerDown={() => sendMove('left')}
+            className="w-12 h-12 bg-white/15 active:bg-white/35 rounded-xl text-lg select-none flex items-center justify-center"
+          >←</button>
+          <div className="w-12 h-12" />
+          <button
+            onPointerDown={() => sendMove('right')}
+            className="w-12 h-12 bg-white/15 active:bg-white/35 rounded-xl text-lg select-none flex items-center justify-center"
+          >→</button>
+          <div className="w-12 h-12" />
+          <button
+            onPointerDown={sendSoftDrop}
+            className="w-12 h-12 bg-white/15 active:bg-white/35 rounded-xl text-lg select-none flex items-center justify-center"
+          >↓</button>
+          <div className="w-12 h-12" />
+        </div>
+
+        {/* Hard drop */}
         <button
           onPointerDown={sendHardDrop}
-          className="flex-1 h-14 bg-cyan-700 hover:bg-cyan-600 active:bg-cyan-500 rounded-xl text-xl font-bold select-none transition-colors"
-        >
-          ⬇
-        </button>
-        <button
-          onPointerDown={() => sendMove('rotate')}
-          className="flex-1 h-14 bg-purple-700 hover:bg-purple-600 active:bg-purple-500 rounded-xl text-xl font-bold select-none transition-colors"
-        >
-          ↺
-        </button>
+          className="w-20 h-20 bg-cyan-400/20 active:bg-cyan-400/50 rounded-full text-3xl select-none flex items-center justify-center"
+        >⬇</button>
       </div>
     </main>
   )
