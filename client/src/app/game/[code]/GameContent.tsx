@@ -27,6 +27,21 @@ export default function GameContent() {
   const [rematchVotes, setRematchVotes] = useState<{ votes: string[]; total: number } | null>(null)
   const [lineClearFlash, setLineClearFlash] = useState(false)
   const [soundEnabled, setSoundEnabled] = useState(false)
+  const [vw, setVw] = useState(390)
+
+  useEffect(() => {
+    const update = () => setVw(window.innerWidth)
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [])
+
+  // side panel fixed at 90px; fit board in remaining space
+  const PANEL_W = 90
+  const cellSize = Math.max(20, Math.min(28, Math.floor((vw - 8 - 12 - PANEL_W) / 10)))
+  // 5 equal buttons + 4 gaps of ~btnSize/10 each, within px-4 (32px) padding
+  const btnSize = Math.max(44, Math.min(60, Math.floor((vw - 48 - 20) / 5)))
+  const btnGap = Math.max(4, Math.floor(btnSize / 11))
 
   const soundRef = useRef(soundEnabled)
   useEffect(() => { soundRef.current = soundEnabled }, [soundEnabled])
@@ -184,11 +199,12 @@ export default function GameContent() {
             currentPiece={gameState.currentPiece}
             ghostY={gameState.ghostY}
             isMyTurn={isMyTurn}
+            cellSize={cellSize}
           />
         </div>
 
         {/* Side panel */}
-        <div className="flex flex-col gap-3 w-[100px]">
+        <div className="flex flex-col gap-3" style={{ width: PANEL_W }}>
           {/* Turn info */}
           <div className={`rounded-xl p-3 text-center ${isMyTurn ? 'bg-cyan-900 ring-1 ring-cyan-500' : 'bg-gray-900'}`}>
             <p className="text-xs text-gray-400 mb-1">{isMyTurn ? '내 턴!' : `${currentPlayer?.name ?? ''}의 턴`}</p>
@@ -233,11 +249,11 @@ export default function GameContent() {
       </div>
 
       {/* Mobile controls */}
-      <div className="flex items-center justify-between px-6 py-3 pb-10 md:hidden">
+      <div className="flex items-center justify-between px-4 py-3 pb-10 md:hidden">
         <DPad
           translucent
-          size={52}
-          gap={5}
+          size={btnSize}
+          gap={btnGap}
           onMove={({ dx, held }) => {
             getSocket().emit('move', { direction: dx === -1 ? 'left' : 'right' })
             if (!held && soundRef.current) playMove()
@@ -247,10 +263,10 @@ export default function GameContent() {
             if (!held && soundRef.current) playMove()
           }}
         />
-        <div className="flex gap-3">
+        <div className="flex" style={{ gap: btnGap }}>
           <RotateButton
             translucent
-            size={78}
+            size={btnSize}
             direction="cw"
             onRotate={() => {
               getSocket().emit('move', { direction: 'rotate' })
@@ -259,7 +275,7 @@ export default function GameContent() {
           />
           <HardDropButton
             translucent
-            size={78}
+            size={btnSize}
             onHardDrop={() => {
               getSocket().emit('hard_drop')
               if (soundRef.current) playHardDrop()
