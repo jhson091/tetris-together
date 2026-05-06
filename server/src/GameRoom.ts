@@ -327,6 +327,7 @@ export class GameRoom {
 
   private lockAndProcess(useHardDrop: boolean): void {
     if (!this.currentPiece) return
+    if (this.lockDelayTimer) { clearTimeout(this.lockDelayTimer); this.lockDelayTimer = null }
 
     const piece = useHardDrop
       ? hardDrop(this.board, this.currentPiece).piece
