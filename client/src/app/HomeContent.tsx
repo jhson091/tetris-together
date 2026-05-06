@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { connectSocket } from '@/lib/socket'
 
@@ -12,6 +12,7 @@ export default function HomeContent() {
   const [mode, setMode] = useState<'home' | 'create' | 'join'>('home')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const pendingRef = useRef(false)
 
   useEffect(() => {
     const code = searchParams.get('join')
@@ -23,30 +24,34 @@ export default function HomeContent() {
 
   function handleCreate() {
     if (!playerName.trim()) { setError('닉네임을 입력해주세요'); return }
+    if (pendingRef.current) return
+    pendingRef.current = true
     setLoading(true); setError('')
     const socket = connectSocket()
     socket.off('room_created'); socket.off('room_joined'); socket.off('room_error')
-    socket.emit('leave_room')
     socket.once('room_created', ({ code }) => {
+      pendingRef.current = false
       setLoading(false)
       router.push(`/room/${code}?name=${encodeURIComponent(playerName.trim())}&host=1`)
     })
-    socket.once('room_error', (msg) => { setLoading(false); setError(msg) })
+    socket.once('room_error', (msg) => { pendingRef.current = false; setLoading(false); setError(msg) })
     socket.emit('create_room', { playerName: playerName.trim() })
   }
 
   function handleJoin() {
     if (!playerName.trim()) { setError('닉네임을 입력해주세요'); return }
     if (!joinCode.trim()) { setError('방 코드를 입력해주세요'); return }
+    if (pendingRef.current) return
+    pendingRef.current = true
     setLoading(true); setError('')
     const socket = connectSocket()
     socket.off('room_created'); socket.off('room_joined'); socket.off('room_error')
-    socket.emit('leave_room')
     socket.once('room_joined', ({ code }) => {
+      pendingRef.current = false
       setLoading(false)
       router.push(`/room/${code}?name=${encodeURIComponent(playerName.trim())}`)
     })
-    socket.once('room_error', (msg) => { setLoading(false); setError(msg) })
+    socket.once('room_error', (msg) => { pendingRef.current = false; setLoading(false); setError(msg) })
     socket.emit('join_room', { code: joinCode.trim().toUpperCase(), playerName: playerName.trim() })
   }
 

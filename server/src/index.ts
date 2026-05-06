@@ -28,9 +28,14 @@ io.on('connection', (socket) => {
   console.log(`[connect] ${socket.id}`)
 
   socket.on('create_room', ({ playerName, settings }) => {
+    // Auto-leave any existing room before creating
+    if (roomManager.getRoom(socket.id)) {
+      roomManager.leaveRoom(socket.id)
+      socket.rooms.forEach(r => { if (r !== socket.id) socket.leave(r) })
+    }
     const result = roomManager.createRoom(socket.id, playerName, settings)
     if (!result) {
-      socket.emit('room_error', '이미 방에 참여 중입니다')
+      socket.emit('room_error', '방 생성에 실패했습니다')
       return
     }
     const { code, room } = result
@@ -41,6 +46,12 @@ io.on('connection', (socket) => {
   })
 
   socket.on('join_room', ({ code, playerName }) => {
+    // Auto-leave any existing room before joining
+    if (roomManager.getRoom(socket.id)) {
+      roomManager.leaveRoom(socket.id)
+      socket.rooms.forEach(r => { if (r !== socket.id) socket.leave(r) })
+    }
+
     const existing = roomManager.getRoomByCode(code)
     if (existing && existing.hasPlayerWithName(playerName) && !existing.findDisconnectedPlayer(playerName)) {
       socket.emit('room_error', `'${playerName}' 닉네임이 이미 사용 중입니다`)
