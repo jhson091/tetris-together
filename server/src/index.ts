@@ -131,6 +131,7 @@ io.on('connection', (socket) => {
   })
 
   socket.on('leave_room', () => {
+    console.log(`[leave_room] socket=${socket.id}`)
     roomManager.leaveRoom(socket.id)
     socket.rooms.forEach(r => { if (r !== socket.id) socket.leave(r) })
   })

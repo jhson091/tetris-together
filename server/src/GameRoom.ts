@@ -136,6 +136,7 @@ export class GameRoom {
   disconnectPlayer(socketId: string, onExpired: () => void): void {
     const player = this.players.get(socketId)
     if (!player) return
+    console.log(`[disconnectPlayer] room=${this.code} player=${player.name} phase=${this.phase} remaining=${this.playerOrder.length - 1}`)
     this.removePlayer(socketId)
     onExpired()
   }
@@ -420,6 +421,7 @@ export class GameRoom {
     this.currentPiece = null
 
     if (abortReason === 'insufficient_players') {
+      console.log(`[game_aborted] room=${this.code} players_left=${this.playerOrder.length}`)
       this.io.to(this.code).emit('game_aborted', { reason: abortReason })
       this.broadcastState()
       return
