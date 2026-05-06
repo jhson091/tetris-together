@@ -215,7 +215,7 @@ export default function GameContent() {
       </div>
 
       {/* Game area */}
-      <div className="flex-1 flex items-center justify-center pt-2 px-2 pb-1 gap-3">
+      <div className="flex-1 flex items-end justify-center pt-2 px-2 pb-3 gap-3">
         {/* Board */}
         <div className={`relative transition-all ${lineClearFlash ? 'brightness-150' : ''}`}>
           <TetrisBoard
