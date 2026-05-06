@@ -137,8 +137,23 @@ export class GameRoom {
     const player = this.players.get(socketId)
     if (!player) return
     console.log(`[disconnectPlayer] room=${this.code} player=${player.name} phase=${this.phase} remaining=${this.playerOrder.length - 1}`)
-    this.removePlayer(socketId)
-    onExpired()
+
+    if (this.phase === 'playing' || this.phase === 'gameover') {
+      this.removePlayer(socketId)
+      onExpired()
+      return
+    }
+
+    // Waiting phase: short grace period so brief reconnects don't destroy the room.
+    // Mark disconnected immediately so UI hides the player, but delay actual removal.
+    player.isConnected = false
+    this.broadcastState()
+    const timer = setTimeout(() => {
+      this.disconnectTimers.delete(socketId)
+      this.removePlayer(socketId)
+      onExpired()
+    }, 15_000)
+    this.disconnectTimers.set(socketId, timer)
   }
 
   findDisconnectedPlayer(playerName: string): string | null {

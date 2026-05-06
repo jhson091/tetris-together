@@ -101,22 +101,29 @@ export default function RoomContent() {
 
         {/* 플레이어 목록 */}
         <div className="bg-gray-900 rounded-2xl p-5">
-          <p className="text-gray-400 text-xs mb-3">참가자 ({players.length}/4)</p>
-          <div className="space-y-2">
-            {players.map((p, i) => (
-              <div key={p.id} className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: p.color }} />
-                <span className="font-medium text-white">{p.name}</span>
-                {i === 0 && <span className="text-xs text-yellow-400 ml-auto">방장</span>}
-              </div>
-            ))}
-            {Array.from({ length: 4 - players.length }).map((_, i) => (
-              <div key={`empty-${i}`} className="flex items-center gap-3 opacity-30">
-                <div className="w-3 h-3 rounded-full border border-gray-600 flex-shrink-0" />
-                <span className="text-gray-500 text-sm">대기 중...</span>
-              </div>
-            ))}
-          </div>
+          {(() => {
+            const connected = players.filter(p => p.isConnected)
+            return (
+              <>
+                <p className="text-gray-400 text-xs mb-3">참가자 ({connected.length}/4)</p>
+                <div className="space-y-2">
+                  {connected.map((p, i) => (
+                    <div key={p.id} className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: p.color }} />
+                      <span className="font-medium text-white">{p.name}</span>
+                      {i === 0 && <span className="text-xs text-yellow-400 ml-auto">방장</span>}
+                    </div>
+                  ))}
+                  {Array.from({ length: 4 - connected.length }).map((_, i) => (
+                    <div key={`empty-${i}`} className="flex items-center gap-3 opacity-30">
+                      <div className="w-3 h-3 rounded-full border border-gray-600 flex-shrink-0" />
+                      <span className="text-gray-500 text-sm">대기 중...</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )
+          })()}
         </div>
 
         {/* 게임 설정 */}
@@ -187,10 +194,12 @@ export default function RoomContent() {
         {isHost ? (
           <button
             onClick={handleStart}
-            disabled={players.length < 2}
+            disabled={players.filter(p => p.isConnected).length < 2}
             className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-xl font-bold text-lg transition-colors"
           >
-            {players.length < 2 ? `최소 2명 필요 (${players.length}/2)` : '게임 시작!'}
+            {players.filter(p => p.isConnected).length < 2
+              ? `최소 2명 필요 (${players.filter(p => p.isConnected).length}/2)`
+              : '게임 시작!'}
           </button>
         ) : (
           <div className="text-center text-gray-400 py-2">
