@@ -20,8 +20,16 @@ const DEFAULT_SETTINGS: RoomSettings = {
 }
 
 const NEXT_QUEUE_SIZE = 5
-const GRAVITY_MS = 1000
 const LOCK_DELAY_MS = 500
+
+function getLevel(totalScore: number): number {
+  if (totalScore < 3000) return Math.floor(totalScore / 1000) + 1
+  return Math.floor((totalScore - 3000) / 500) + 4
+}
+
+function getGravityMs(level: number): number {
+  return Math.round(1000 * Math.pow(0.9, level - 1))
+}
 const RECONNECT_GRACE_MS = 5 * 60 * 1000
 
 export class GameRoom {
@@ -258,9 +266,10 @@ export class GameRoom {
       }
     }, 1000)
 
+    const gravityMs = getGravityMs(getLevel(this.getTotalScore()))
     this.gravityTimer = setInterval(() => {
       this.gravityTick()
-    }, GRAVITY_MS)
+    }, gravityMs)
   }
 
   private spawnNextPiece(): void {

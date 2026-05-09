@@ -209,6 +209,12 @@ export default function GameContent() {
   const isMyTurn = gameState.currentPlayerId === myId
   const currentPlayer = gameState.players.find(p => p.id === gameState.currentPlayerId)
 
+  function getLevel(totalScore: number): number {
+    if (totalScore < 3000) return Math.floor(totalScore / 1000) + 1
+    return Math.floor((totalScore - 3000) / 500) + 4
+  }
+  const level = getLevel(gameState.totalScore)
+
   return (
     <main className="min-h-screen flex flex-col bg-gray-950">
       {/* Header */}
@@ -223,6 +229,7 @@ export default function GameContent() {
           ))}
         </div>
         <div className="flex items-center gap-3 text-xs text-gray-400">
+          <span className="text-yellow-400 font-bold">Lv.{level}</span>
           <span className="text-cyan-400 font-bold">{gameState.totalScore.toLocaleString()}점</span>
           <span>{gameState.totalLinesCleared} lines</span>
           <button
