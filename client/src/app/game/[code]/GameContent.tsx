@@ -48,19 +48,28 @@ export default function GameContent() {
   useEffect(() => { soundRef.current = soundEnabled }, [soundEnabled])
 
   const prevPlayerIdRef = useRef('')
+  const isRejoiningRef = useRef(false)
 
   useEffect(() => {
     const socket = getSocket()
     if (socket.id) setMyId(socket.id)
 
     socket.on('connect', () => {
+      isRejoiningRef.current = true
       setMyId(socket.id ?? '')
       socket.emit('rejoin_room', { code, playerName })
     })
 
     socket.emit('get_state')
 
-    socket.on('game_state', (state) => setGameState(state))
+    socket.on('game_state', (state) => { isRejoiningRef.current = false; setGameState(state) })
+    socket.on('room_error', (_msg) => {
+      if (isRejoiningRef.current) {
+        isRejoiningRef.current = false
+        getSocket().emit('leave_room')
+        router.push('/')
+      }
+    })
     socket.on('line_clear', (data) => {
       setLineClearFlash(true)
       setTimeout(() => setLineClearFlash(false), 300)
@@ -85,6 +94,7 @@ export default function GameContent() {
       socket.off('rematch_vote_update')
       socket.off('rematch_start')
       socket.off('game_aborted')
+      socket.off('room_error')
     }
   }, [code, playerName])
 

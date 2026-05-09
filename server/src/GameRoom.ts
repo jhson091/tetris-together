@@ -152,7 +152,7 @@ export class GameRoom {
       this.disconnectTimers.delete(socketId)
       this.removePlayer(socketId)
       onExpired()
-    }, 15_000)
+    }, 3 * 60 * 1000)
     this.disconnectTimers.set(socketId, timer)
   }
 

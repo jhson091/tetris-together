@@ -77,7 +77,10 @@ io.on('connection', (socket) => {
 
   socket.on('rejoin_room', ({ code, playerName }) => {
     const room = roomManager.reconnectPlayer(socket.id, code, playerName)
-    if (!room) return
+    if (!room) {
+      socket.emit('room_error', '방이 만료되었습니다')
+      return
+    }
 
     socket.join(room.code)
     socket.emit('room_joined', { code: room.code, playerId: socket.id, players: room.getState().players })

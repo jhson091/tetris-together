@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { connectSocket, getSocket } from '@/lib/socket'
 import { PlayerInfo } from '@/types/game'
@@ -18,15 +18,22 @@ export default function RoomContent() {
   const [isHost, setIsHost] = useState(searchParams.get('host') === '1')
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
+  const isRejoiningRef = useRef(false)
 
   useEffect(() => {
     const socket = connectSocket()
     socket.emit('get_state')
 
     socket.on('connect', () => {
+      isRejoiningRef.current = true
       socket.emit('rejoin_room', { code, playerName })
     })
     socket.on('game_state', (state) => {
+      isRejoiningRef.current = false
+      if (state.phase === 'playing') {
+        router.push(`/game/${code}?name=${encodeURIComponent(playerName)}`)
+        return
+      }
       setPlayers(state.players)
       setBlocksPerTurn(state.blocksPerTurn)
       setTurnTimeSeconds(state.turnTimeSeconds)
@@ -39,7 +46,15 @@ export default function RoomContent() {
     socket.on('game_started', () => {
       router.push(`/game/${code}?name=${encodeURIComponent(playerName)}`)
     })
-    socket.on('room_error', (msg) => setError(msg))
+    socket.on('room_error', (msg) => {
+      if (isRejoiningRef.current) {
+        isRejoiningRef.current = false
+        setError('방이 만료되었습니다. 로비로 이동합니다.')
+        setTimeout(() => router.push('/'), 2500)
+      } else {
+        setError(msg)
+      }
+    })
 
     return () => {
       socket.off('connect')
