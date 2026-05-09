@@ -107,7 +107,7 @@ export default function GameOverScreen({ analysis, rankings, myId, rematchVotes,
                     className={`flex items-center gap-2 py-1.5 border-b border-gray-800 last:border-0 ${c.playerId === myId ? 'opacity-100' : 'opacity-70'}`}
                   >
                     <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: c.color }} />
-                    <span className="flex-1 text-sm">{c.playerName}{c.playerId === myId ? ' (나)' : ''}</span>
+                    <span className="flex-1 text-sm text-gray-200">{c.playerName}{c.playerId === myId ? ' (나)' : ''}</span>
                     <span className="text-xs text-green-400">+{c.linesCleared}줄</span>
                     <span className="text-xs text-red-400">−{c.holesCreated}구멍</span>
                     <span
