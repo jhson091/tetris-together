@@ -80,8 +80,17 @@ export interface RankingEntry {
   linesCleared: number
 }
 
+export interface ChatMessage {
+  playerId: string
+  playerName: string
+  color: string
+  text: string
+  timestamp: number
+}
+
 export interface ServerToClientEvents {
   game_state: (state: GameState) => void
+  chat_message: (msg: ChatMessage) => void
   turn_change: (data: { currentPlayerId: string; turnTimeLeft: number; turnBlocksLeft: number }) => void
   line_clear: (data: { playerId: string; lines: number; score: number; totalScore: number }) => void
   player_left: (data: { playerId: string; playerName: string }) => void
@@ -99,6 +108,7 @@ export interface ServerToClientEvents {
 }
 
 export interface ClientToServerEvents {
+  send_chat: (payload: { text: string }) => void
   create_room: (payload: { playerName: string; settings?: { blocksPerTurn?: number } }) => void
   join_room: (payload: { code: string; playerName: string }) => void
   rejoin_room: (payload: { code: string; playerName: string }) => void

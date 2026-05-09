@@ -538,6 +538,18 @@ export class GameRoom {
     return Array.from(this.players.values()).reduce((sum, p) => sum + p.score, 0)
   }
 
+  broadcastChat(socketId: string, text: string): void {
+    const player = this.players.get(socketId)
+    if (!player) return
+    this.io.to(this.code).emit('chat_message', {
+      playerId: socketId,
+      playerName: player.name,
+      color: player.color,
+      text,
+      timestamp: Date.now(),
+    })
+  }
+
   getLastGameOver() {
     return this.lastGameOver
   }

@@ -139,6 +139,13 @@ io.on('connection', (socket) => {
     room?.handleHardDrop(socket.id)
   })
 
+  socket.on('send_chat', ({ text }) => {
+    const room = roomManager.getRoom(socket.id)
+    if (!room) return
+    const sanitized = text.trim().slice(0, 60)
+    if (sanitized) room.broadcastChat(socket.id, sanitized)
+  })
+
   socket.on('vote_rematch', () => {
     const room = roomManager.getRoom(socket.id)
     room?.handleRematchVote(socket.id)

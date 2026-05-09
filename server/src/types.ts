@@ -109,8 +109,17 @@ export interface UpdateSettingsPayload {
   turnTimeSeconds: number
 }
 
+export interface ChatMessage {
+  playerId: string
+  playerName: string
+  color: string
+  text: string
+  timestamp: number
+}
+
 export interface ServerToClientEvents {
   game_state: (state: GameState) => void
+  chat_message: (msg: ChatMessage) => void
   turn_change: (data: { currentPlayerId: string; turnTimeLeft: number; turnBlocksLeft: number }) => void
   line_clear: (data: { playerId: string; lines: number; score: number; totalScore: number }) => void
   player_left: (data: { playerId: string; playerName: string }) => void
@@ -128,6 +137,7 @@ export interface ServerToClientEvents {
 }
 
 export interface ClientToServerEvents {
+  send_chat: (payload: { text: string }) => void
   create_room: (payload: CreateRoomPayload) => void
   join_room: (payload: JoinRoomPayload) => void
   rejoin_room: (payload: RejoinRoomPayload) => void

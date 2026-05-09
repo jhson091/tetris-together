@@ -3,10 +3,11 @@
 import { useEffect, useCallback, useState, useRef } from 'react'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { getSocket } from '@/lib/socket'
-import { GameState, DeathAnalysis, RankingEntry } from '@/types/game'
+import { GameState, DeathAnalysis, RankingEntry, ChatMessage } from '@/types/game'
 import TetrisBoard from '@/components/TetrisBoard'
 import NextPiecePreview from '@/components/NextPiecePreview'
 import GameOverScreen from '@/components/GameOverScreen'
+import ChatBox from '@/components/ChatBox'
 import DPad from '@/components/DPad'
 import RotateButton from '@/components/RotateButton'
 import HardDropButton from '@/components/HardDropButton'
@@ -29,6 +30,11 @@ export default function GameContent() {
   const [soundEnabled, setSoundEnabled] = useState(false)
   const [gameAborted, setGameAborted] = useState(false)
   const [vw, setVw] = useState(390)
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
+  const [chatOpen, setChatOpen] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
+  const chatOpenRef = useRef(false)
+  useEffect(() => { chatOpenRef.current = chatOpen }, [chatOpen])
 
   useEffect(() => {
     const update = () => setVw(window.innerWidth)
@@ -85,6 +91,10 @@ export default function GameContent() {
       setRematchVotes(null)
     })
     socket.on('game_aborted', () => setGameAborted(true))
+    socket.on('chat_message', (msg) => {
+      setChatMessages(prev => [...prev.slice(-99), msg])
+      if (!chatOpenRef.current) setUnreadCount(prev => prev + 1)
+    })
 
     return () => {
       socket.off('connect')
@@ -95,6 +105,7 @@ export default function GameContent() {
       socket.off('rematch_start')
       socket.off('game_aborted')
       socket.off('room_error')
+      socket.off('chat_message')
     }
   }, [code, playerName])
 
@@ -221,6 +232,18 @@ export default function GameContent() {
           >
             {soundEnabled ? '🔊' : '🔇'}
           </button>
+          <button
+            onClick={() => { setChatOpen(prev => !prev); setUnreadCount(0) }}
+            className="relative text-base leading-none opacity-60 hover:opacity-100 transition-opacity"
+            title="채팅"
+          >
+            💬
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold rounded-full w-3.5 h-3.5 flex items-center justify-center leading-none">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </button>
         </div>
       </div>
 
@@ -281,6 +304,15 @@ export default function GameContent() {
           </div>
         </div>
       </div>
+
+      {/* Chat */}
+      {chatOpen && (
+        <ChatBox
+          messages={chatMessages}
+          myId={myId}
+          onSend={(text) => getSocket().emit('send_chat', { text })}
+        />
+      )}
 
       {/* Mobile controls */}
       <div className="flex items-center justify-between px-4 pt-1 pb-10 md:hidden">
