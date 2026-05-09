@@ -100,6 +100,7 @@ export class GameRoom {
 
     if (this.phase === 'playing') {
       const isCurrentPlayer = this.getCurrentPlayerId() === socketId
+      const removedIndex = this.playerOrder.indexOf(socketId)
       this.playerOrder = this.playerOrder.filter(id => id !== socketId)
       this.players.delete(socketId)
 
@@ -118,6 +119,9 @@ export class GameRoom {
         }
         this.currentPlayerIndex = this.currentPlayerIndex % this.playerOrder.length
         this.startTurn()
+      } else if (removedIndex < this.currentPlayerIndex) {
+        // Player before current was removed — shift index to keep pointing at same player
+        this.currentPlayerIndex--
       }
     } else {
       this.playerOrder = this.playerOrder.filter(id => id !== socketId)
@@ -415,7 +419,7 @@ export class GameRoom {
       total,
     })
 
-    if (this.rematchVotes.size >= Math.ceil(total / 2)) {
+    if (total >= 2 && this.rematchVotes.size >= Math.ceil(total / 2)) {
       this.resetForRematch()
     }
   }
@@ -427,6 +431,10 @@ export class GameRoom {
     this.lastGameOver = null
 
     setTimeout(() => {
+      if (this.playerOrder.length < 2) {
+        this.io.to(this.code).emit('game_aborted', { reason: 'insufficient_players' })
+        return
+      }
       this.startGame()
     }, 2000)
   }

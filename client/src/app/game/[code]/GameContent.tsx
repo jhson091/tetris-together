@@ -289,10 +289,12 @@ export default function GameContent() {
           size={btnSize}
           gap={btnGap}
           onMove={({ dx, held }) => {
+            if (!isMyTurn) return
             getSocket().emit('move', { direction: dx === -1 ? 'left' : 'right' })
             if (!held && soundRef.current) playMove()
           }}
           onSoftDrop={(held) => {
+            if (!isMyTurn) return
             getSocket().emit('soft_drop')
             if (!held && soundRef.current) playMove()
           }}
@@ -303,6 +305,7 @@ export default function GameContent() {
             size={btnSize}
             direction="cw"
             onRotate={() => {
+              if (!isMyTurn) return
               getSocket().emit('move', { direction: 'rotate' })
               if (soundRef.current) playRotate()
             }}
@@ -311,6 +314,7 @@ export default function GameContent() {
             translucent
             size={btnSize}
             onHardDrop={() => {
+              if (!isMyTurn) return
               getSocket().emit('hard_drop')
               if (soundRef.current) playHardDrop()
             }}
