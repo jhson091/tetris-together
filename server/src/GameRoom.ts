@@ -150,22 +150,37 @@ export class GameRoom {
     if (!player) return
     console.log(`[disconnectPlayer] room=${this.code} player=${player.name} phase=${this.phase} remaining=${this.playerOrder.length - 1}`)
 
-    if (this.phase === 'playing' || this.phase === 'gameover') {
+    if (this.phase === 'gameover') {
       this.removePlayer(socketId)
       onExpired()
       return
     }
 
-    // Waiting phase: short grace period so brief reconnects don't destroy the room.
-    // Mark disconnected immediately so UI hides the player, but delay actual removal.
+    // Mark disconnected immediately so UI can reflect this
     player.isConnected = false
     this.broadcastState()
+
+    // Playing phase: 30s grace; waiting phase: 3-minute grace
+    const graceMs = this.phase === 'playing' ? 30 * 1000 : 3 * 60 * 1000
     const timer = setTimeout(() => {
       this.disconnectTimers.delete(socketId)
       this.removePlayer(socketId)
       onExpired()
-    }, 3 * 60 * 1000)
+    }, graceMs)
     this.disconnectTimers.set(socketId, timer)
+
+    // If it's the disconnected player's turn, immediately advance to the next player
+    if (this.phase === 'playing' && this.getCurrentPlayerId() === socketId) {
+      if (this.currentPiece) {
+        const { piece } = hardDrop(this.board, this.currentPiece)
+        this.board = lockPiece(this.board, piece)
+        const { board, linesCleared } = clearLines(this.board)
+        this.board = board
+        this.totalLinesCleared += linesCleared
+      }
+      this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.playerOrder.length
+      this.startTurn()
+    }
   }
 
   findDisconnectedPlayer(playerName: string): string | null {
@@ -238,8 +253,20 @@ export class GameRoom {
     return this.playerOrder[this.currentPlayerIndex % this.playerOrder.length]
   }
 
+  private advanceToConnectedPlayer(): boolean {
+    const total = this.playerOrder.length
+    for (let tries = 0; tries < total; tries++) {
+      const player = this.players.get(this.getCurrentPlayerId())
+      if (player?.isConnected !== false) return true
+      this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.playerOrder.length
+    }
+    this.endGame('insufficient_players')
+    return false
+  }
+
   private startTurn(): void {
     this.clearTimers()
+    if (!this.advanceToConnectedPlayer()) return
     this.turnBlocksLeft = this.settings.blocksPerTurn
     this.turnTimeLeft = this.settings.turnTimeSeconds
     this.boardAtTurnStart = this.board.map(row => [...row])
