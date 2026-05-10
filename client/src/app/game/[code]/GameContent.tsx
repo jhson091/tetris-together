@@ -30,6 +30,7 @@ export default function GameContent() {
   const [soundEnabled, setSoundEnabled] = useState(false)
   const [gameAborted, setGameAborted] = useState(false)
   const [vw, setVw] = useState(390)
+  const [vh, setVh] = useState(844)
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [chatOpen, setChatOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
@@ -37,15 +38,19 @@ export default function GameContent() {
   useEffect(() => { chatOpenRef.current = chatOpen }, [chatOpen])
 
   useEffect(() => {
-    const update = () => setVw(window.innerWidth)
+    const update = () => { setVw(window.innerWidth); setVh(window.innerHeight) }
     update()
     window.addEventListener('resize', update)
     return () => window.removeEventListener('resize', update)
   }, [])
 
-  // side panel fixed at 90px; fit board in remaining space
+  // side panel fixed at 90px; board fits remaining width and height
   const PANEL_W = 90
-  const cellSize = Math.max(20, Math.min(28, Math.floor((vw - 8 - 12 - PANEL_W) / 10)))
+  const isMobile = vw < 768
+  const cellByW = Math.floor((vw - 20 - PANEL_W) / 10)
+  // header 48px, controls 80px (mobile only), chat bar 36px, padding 16px
+  const cellByH = Math.floor((vh - 48 - (isMobile ? 80 : 0) - 36 - 16) / 20)
+  const cellSize = Math.max(20, Math.min(36, cellByW, cellByH))
   // 5 equal buttons + 4 gaps of ~btnSize/10 each, within px-4 (32px) padding
   const btnSize = Math.max(44, Math.min(60, Math.floor((vw - 48 - 20) / 5)))
   const btnGap = Math.max(4, Math.floor(btnSize / 11))
@@ -239,23 +244,11 @@ export default function GameContent() {
           >
             {soundEnabled ? '🔊' : '🔇'}
           </button>
-          <button
-            onClick={() => { setChatOpen(prev => !prev); setUnreadCount(0) }}
-            className="relative text-base leading-none opacity-60 hover:opacity-100 transition-opacity"
-            title="채팅"
-          >
-            💬
-            {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold rounded-full w-3.5 h-3.5 flex items-center justify-center leading-none">
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </span>
-            )}
-          </button>
         </div>
       </div>
 
       {/* Game area */}
-      <div className="flex-1 flex items-end justify-center pt-2 px-2 pb-3 gap-3">
+      <div className="flex-1 flex items-end md:items-center justify-center pt-2 px-2 pb-2 gap-3">
         {/* Board */}
         <div className={`relative transition-all ${lineClearFlash ? 'brightness-150' : ''}`}>
           <TetrisBoard
@@ -312,17 +305,8 @@ export default function GameContent() {
         </div>
       </div>
 
-      {/* Chat */}
-      {chatOpen && (
-        <ChatBox
-          messages={chatMessages}
-          myId={myId}
-          onSend={(text) => getSocket().emit('send_chat', { text })}
-        />
-      )}
-
       {/* Mobile controls */}
-      <div className="flex items-center justify-between px-4 pt-1 pb-10 md:hidden">
+      <div className="flex items-center justify-between px-4 pt-1 pb-3 md:hidden">
         <DPad
           translucent
           size={btnSize}
@@ -359,6 +343,31 @@ export default function GameContent() {
             }}
           />
         </div>
+      </div>
+
+      {/* Chat panel — docked at bottom, always visible as toggle bar */}
+      <div className="bg-gray-900 border-t border-gray-800">
+        <button
+          onClick={() => { setChatOpen(prev => !prev); setUnreadCount(0) }}
+          className="w-full flex items-center justify-between px-4 h-9 hover:bg-gray-800 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-300">💬 채팅</span>
+            {unreadCount > 0 && (
+              <span className="bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 leading-none">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </div>
+          <span className="text-gray-500 text-xs">{chatOpen ? '▼' : '▲'}</span>
+        </button>
+        {chatOpen && (
+          <ChatBox
+            messages={chatMessages}
+            myId={myId}
+            onSend={(text) => getSocket().emit('send_chat', { text })}
+          />
+        )}
       </div>
     </main>
   )

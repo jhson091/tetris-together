@@ -76,7 +76,14 @@ export default function HomeContent() {
 
         {(mode === 'create' || mode === 'join') && (
           <div className="bg-gray-900 rounded-2xl p-6 space-y-4">
-            <button onClick={() => { setMode('home'); setError('') }} className="text-gray-400 hover:text-white text-sm transition-colors">← 뒤로</button>
+            <button onClick={() => {
+              const socket = connectSocket()
+              socket.off('room_created'); socket.off('room_joined'); socket.off('room_error')
+              pendingRef.current = false
+              setLoading(false)
+              setError('')
+              setMode('home')
+            }} className="text-gray-400 hover:text-white text-sm transition-colors">← 뒤로</button>
             <div>
               <label className="block text-sm text-gray-400 mb-1">닉네임</label>
               <input type="text" value={playerName} onChange={e => setPlayerName(e.target.value)} maxLength={12} placeholder="최대 12자"
@@ -93,8 +100,16 @@ export default function HomeContent() {
             )}
             {error && <p className="text-red-400 text-sm">{error}</p>}
             <button onClick={mode === 'create' ? handleCreate : handleJoin} disabled={loading}
-              className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-xl font-bold text-lg transition-colors">
-              {loading ? '연결 중...' : mode === 'create' ? '방 만들기' : '입장하기'}
+              className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-xl font-bold text-lg transition-colors flex items-center justify-center gap-2">
+              {loading && (
+                <svg className="animate-spin w-5 h-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                </svg>
+              )}
+              {loading
+                ? (mode === 'create' ? '방 만드는 중...' : '입장하는 중...')
+                : (mode === 'create' ? '방 만들기' : '입장하기')}
             </button>
           </div>
         )}
