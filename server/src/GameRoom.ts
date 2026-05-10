@@ -423,12 +423,18 @@ export class GameRoom {
     this.rematchVotes.add(socketId)
 
     const total = this.playerOrder.length
+
+    if (total < 2) {
+      this.io.to(this.code).emit('game_aborted', { reason: 'insufficient_players' })
+      return
+    }
+
     this.io.to(this.code).emit('rematch_vote_update', {
       votes: Array.from(this.rematchVotes),
       total,
     })
 
-    if (total >= 2 && this.rematchVotes.size >= Math.ceil(total / 2)) {
+    if (this.rematchVotes.size >= Math.ceil(total / 2)) {
       this.resetForRematch()
     }
   }
