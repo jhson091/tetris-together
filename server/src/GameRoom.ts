@@ -118,6 +118,7 @@ export class GameRoom {
       }
 
       if (isCurrentPlayer) {
+        console.log(`[forcedHardDrop] room=${this.code} player=${player.name} reason=grace_period_expired`)
         if (this.currentPiece) {
           const { piece } = hardDrop(this.board, this.currentPiece)
           this.board = lockPiece(this.board, piece)
@@ -171,6 +172,7 @@ export class GameRoom {
 
     // If it's the disconnected player's turn, immediately advance to the next player
     if (this.phase === 'playing' && this.getCurrentPlayerId() === socketId) {
+      console.log(`[forcedHardDrop] room=${this.code} player=${player.name} reason=disconnect_during_turn`)
       if (this.currentPiece) {
         const { piece } = hardDrop(this.board, this.currentPiece)
         this.board = lockPiece(this.board, piece)
@@ -377,7 +379,11 @@ export class GameRoom {
   }
 
   private autoHardDrop(): void {
-    if (this.currentPiece) this.lockAndProcess(true)
+    if (!this.currentPiece) return
+    const pid = this.getCurrentPlayerId()
+    const pname = this.players.get(pid)?.name ?? pid
+    console.log(`[autoHardDrop] room=${this.code} player=${pname} reason=turn_timer_expired`)
+    this.lockAndProcess(true)
   }
 
   private lockAndProcess(useHardDrop: boolean): void {
