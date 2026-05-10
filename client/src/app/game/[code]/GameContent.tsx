@@ -306,7 +306,10 @@ export default function GameContent() {
       </div>
 
       {/* Mobile controls */}
-      <div className="flex items-center justify-between px-4 pt-1 pb-3 md:hidden">
+      <div
+        className="flex items-center justify-between px-4 pt-1 pb-3 md:hidden"
+        onPointerDown={() => (document.activeElement as HTMLElement)?.blur()}
+      >
         <DPad
           translucent
           size={btnSize}

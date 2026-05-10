@@ -51,7 +51,7 @@ export default function ChatBox({ messages, myId, onSend }: Props) {
           type="text"
           value={input}
           onChange={e => setInput(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') handleSend() }}
+          onKeyDown={e => { if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') handleSend() }}
           maxLength={60}
           placeholder="메시지 입력..."
           className="flex-1 bg-gray-800 text-white text-sm px-3 py-1.5 rounded-lg placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-gray-600"
