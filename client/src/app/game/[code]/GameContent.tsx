@@ -166,6 +166,8 @@ export default function GameContent() {
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement).tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
       if (!gameState || gameState.phase !== 'playing') return
       if (gameState.currentPlayerId !== myId) return
 
