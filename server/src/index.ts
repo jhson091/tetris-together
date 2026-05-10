@@ -39,6 +39,7 @@ io.on('connection', (socket) => {
       return
     }
     const { code, room } = result
+    console.log(`[create_room] player=${playerName} room=${code}`)
     socket.join(code)
     socket.emit('room_created', { code, playerId: socket.id })
     socket.emit('settings_updated', room.getSettings())
@@ -67,6 +68,7 @@ io.on('connection', (socket) => {
       return
     }
 
+    console.log(`[join_room] player=${playerName} room=${code.toUpperCase()}`)
     socket.join(code.toUpperCase())
     const players = room.getState().players
     socket.emit('room_joined', { code: room.code, playerId: socket.id, players })
