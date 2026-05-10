@@ -295,7 +295,7 @@ export class GameRoom {
       this.currentPiece = { ...this.currentPiece, y: this.currentPiece.y + 1 }
       if (this.lockDelayTimer) { clearTimeout(this.lockDelayTimer); this.lockDelayTimer = null }
       this.broadcastState()
-    } else {
+    } else if (!this.lockDelayTimer) {
       this.startLockDelay()
     }
   }
