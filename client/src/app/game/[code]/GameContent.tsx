@@ -225,7 +225,7 @@ export default function GameContent() {
   return (
     <main className="min-h-screen flex flex-col bg-gray-950">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 bg-gray-900 border-b border-gray-800">
+      <div className="flex items-center justify-between px-4 py-1 bg-gray-900 border-b border-gray-800">
         <div className="flex gap-3">
           {gameState.players.map(p => (
             <div key={p.id} className={`flex items-center gap-1 text-sm ${p.id === gameState.currentPlayerId ? 'opacity-100' : 'opacity-40'}`}>
@@ -250,7 +250,7 @@ export default function GameContent() {
       </div>
 
       {/* Game area */}
-      <div className="flex-1 flex items-end md:items-start justify-center pt-2 px-2 pb-2 gap-3">
+      <div className="flex-1 flex items-end md:items-start justify-center px-2 pb-2 gap-3">
         {/* Board */}
         <div className={`relative transition-all ${lineClearFlash ? 'brightness-150' : ''}`}>
           <TetrisBoard
