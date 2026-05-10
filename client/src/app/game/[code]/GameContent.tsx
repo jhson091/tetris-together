@@ -250,7 +250,7 @@ export default function GameContent() {
       </div>
 
       {/* Game area */}
-      <div className="flex-1 flex items-start justify-center px-2 pb-2 gap-3">
+      <div className="flex-1 flex items-start justify-center px-2 pb-1 gap-3">
         {/* Board */}
         <div className={`relative transition-all ${lineClearFlash ? 'brightness-150' : ''}`}>
           <TetrisBoard
@@ -309,7 +309,7 @@ export default function GameContent() {
 
       {/* Mobile controls */}
       <div
-        className="flex items-center justify-between px-4 pt-1 pb-3 md:hidden"
+        className="flex items-center justify-between px-4 pt-1 pb-1 md:hidden"
         onPointerDown={() => (document.activeElement as HTMLElement)?.blur()}
       >
         <DPad
