@@ -355,8 +355,14 @@ export class GameRoom {
       }
     }
 
-    if (this.currentPiece && !isValidPosition(this.board, this.currentPiece, 0, 1)) {
-      this.startLockDelay()
+    if (this.currentPiece) {
+      if (!isValidPosition(this.board, this.currentPiece, 0, 1)) {
+        this.startLockDelay()
+      } else if (this.lockDelayTimer) {
+        // Piece can fall again after move/rotate — cancel premature lock
+        clearTimeout(this.lockDelayTimer)
+        this.lockDelayTimer = null
+      }
     }
 
     this.broadcastState()
