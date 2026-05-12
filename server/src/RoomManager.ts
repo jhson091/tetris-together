@@ -77,12 +77,6 @@ export class RoomManager {
         this.rooms.delete(code)
       }
     })
-
-    // Keep socketToRoom entry alive for game-in-progress case
-    // (disconnectPlayer calls removePlayer immediately for playing phase,
-    //  which doesn't call this callback, so we clean up here)
-    if (!room.isInProgress()) return
-    this.socketToRoom.delete(socketId)
   }
 
   reconnectPlayer(newSocketId: string, code: string, playerName: string): GameRoom | null {
