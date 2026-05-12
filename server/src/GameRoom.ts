@@ -473,7 +473,7 @@ export class GameRoom {
       total,
     })
 
-    if (this.rematchVotes.size >= Math.ceil(total / 2)) {
+    if (this.rematchVotes.size >= total) {
       this.resetForRematch()
     }
   }

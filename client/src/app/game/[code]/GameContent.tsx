@@ -49,8 +49,8 @@ export default function GameContent() {
   const PANEL_W = 90
   const isMobile = vw < 768
   const cellByW = Math.floor((vw - 20 - PANEL_W) / 10)
-  // header 48px, controls 80px (mobile only), chat bar 36px, padding 16px
-  const cellByH = Math.floor((vh - 48 - (isMobile ? 80 : 0) - 36 - 16) / 20)
+  // header 48px, controls 80px (mobile only), chat bar 36px, 0.5cm gap×2 ≈ 38px
+  const cellByH = Math.floor((vh - 48 - (isMobile ? 80 : 0) - 36 - 38) / 20)
   const cellSize = Math.max(20, Math.min(36, cellByW, cellByH))
   // 5 equal buttons + 4 gaps of ~btnSize/10 each, within px-4 (32px) padding
   const btnSize = Math.max(44, Math.min(60, Math.floor((vw - 48 - 20) / 5)))
@@ -231,7 +231,7 @@ export default function GameContent() {
           {gameState.players.map(p => (
             <div key={p.id} className={`flex items-center gap-1 text-sm ${p.id === gameState.currentPlayerId ? 'opacity-100' : 'opacity-40'}`}>
               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
-              <span className={p.id === myId ? 'font-bold text-white' : 'text-gray-300'}>{p.name}</span>
+              <span className={p.id === myId ? 'font-bold text-white' : 'text-gray-300'}>{p.name.length >= 5 ? p.name.slice(0, 5) + '…' : p.name}</span>
               <span className="text-xs text-gray-400">{p.score}</span>
             </div>
           ))}
@@ -251,7 +251,7 @@ export default function GameContent() {
       </div>
 
       {/* Game area */}
-      <div className="flex-1 flex items-center md:items-start justify-center px-2 pb-0 md:pb-1 gap-3">
+      <div className="md:flex-1 flex items-start justify-center px-2 pt-[0.5cm] md:pt-0 pb-0 md:pb-1 gap-3">
         {/* Board */}
         <div className={`relative transition-all ${lineClearFlash ? 'brightness-150' : ''}`}>
           <TetrisBoard
@@ -267,7 +267,7 @@ export default function GameContent() {
         <div className="flex flex-col gap-3" style={{ width: PANEL_W }}>
           {/* Turn info */}
           <div className={`rounded-xl p-3 text-center ${isMyTurn ? 'bg-cyan-900 ring-1 ring-cyan-500' : 'bg-gray-900'}`}>
-            <p className="text-xs text-gray-400 mb-1">{isMyTurn ? '내 턴!' : `${currentPlayer?.name ?? ''}의 턴`}</p>
+            <p className="text-xs text-gray-400 mb-1">{isMyTurn ? '내 턴!' : `${(n => n.length >= 5 ? n.slice(0, 5) + '…' : n)(currentPlayer?.name ?? '')}의 턴`}</p>
             <p className={`text-2xl font-black ${gameState.turnTimeLeft <= 5 ? 'text-red-400' : 'text-white'}`}>
               {gameState.turnTimeLeft}
             </p>
@@ -301,7 +301,7 @@ export default function GameContent() {
                   <div key={p.id} className={`flex items-center gap-1 ${p.id === gameState.currentPlayerId ? 'opacity-100' : 'opacity-50'}`}>
                     <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: p.color }} />
                     <span className={`text-xs ${p.id === myId ? 'font-bold text-white' : 'text-gray-300'}`}>
-                      {p.name.length > 6 ? p.name.slice(0, 6) + '…' : p.name}
+                      {p.name.length >= 5 ? p.name.slice(0, 5) + '…' : p.name}
                     </span>
                   </div>
                 ))}
@@ -320,7 +320,7 @@ export default function GameContent() {
 
       {/* Mobile controls */}
       <div
-        className="flex items-center justify-between px-4 pt-[5px] pb-[5px] md:hidden"
+        className="flex items-center justify-between px-4 pt-[0.5cm] pb-[5px] md:hidden"
         onPointerDown={() => (document.activeElement as HTMLElement)?.blur()}
       >
         <DPad
