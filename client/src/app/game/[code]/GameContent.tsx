@@ -267,7 +267,9 @@ export default function GameContent() {
         <div className="flex flex-col gap-3" style={{ width: PANEL_W }}>
           {/* Turn info */}
           <div className={`rounded-xl p-3 text-center ${isMyTurn ? 'bg-cyan-900 ring-1 ring-cyan-500' : 'bg-gray-900'}`}>
-            <p className="text-xs text-gray-400 mb-1">{isMyTurn ? '내 턴!' : `${(n => n.length >= 5 ? n.slice(0, 5) + '…' : n)(currentPlayer?.name ?? '')}의 턴`}</p>
+            <p className="text-[10px] text-gray-400 mb-1 h-4 flex items-center justify-center whitespace-nowrap overflow-hidden">
+              {isMyTurn ? '내 턴!' : `${(n => n.length >= 5 ? n.slice(0, 5) + '…' : n)(currentPlayer?.name ?? '')}의 턴`}
+            </p>
             <p className={`text-2xl font-black ${gameState.turnTimeLeft <= 5 ? 'text-red-400' : 'text-white'}`}>
               {gameState.turnTimeLeft}
             </p>
