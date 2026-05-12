@@ -34,6 +34,7 @@ export default function GameContent() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [chatOpen, setChatOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
+  const [playersOpen, setPlayersOpen] = useState(false)
   const chatOpenRef = useRef(false)
   useEffect(() => { chatOpenRef.current = chatOpen }, [chatOpen])
 
@@ -250,7 +251,7 @@ export default function GameContent() {
       </div>
 
       {/* Game area */}
-      <div className="md:flex-1 flex items-start justify-center px-2 pt-[5px] md:pt-0 pb-0 md:pb-1 gap-3">
+      <div className="flex-1 flex items-center md:items-start justify-center px-2 pb-0 md:pb-1 gap-3">
         {/* Board */}
         <div className={`relative transition-all ${lineClearFlash ? 'brightness-150' : ''}`}>
           <TetrisBoard
@@ -286,16 +287,26 @@ export default function GameContent() {
           </div>
 
           {/* Players */}
-          <div className="bg-gray-900 rounded-xl p-2">
-            <p className="text-xs text-gray-400 mb-2 text-center">플레이어</p>
-            <div className="space-y-1">
-              {gameState.players.map(p => (
-                <div key={p.id} className={`flex items-center gap-1 ${p.id === gameState.currentPlayerId ? 'opacity-100' : 'opacity-50'}`}>
-                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: p.color }} />
-                  <span className={`text-xs truncate ${p.id === myId ? 'font-bold text-white' : 'text-gray-300'}`}>{p.name}</span>
-                </div>
-              ))}
-            </div>
+          <div className="bg-gray-900 rounded-xl overflow-hidden">
+            <button
+              onClick={() => setPlayersOpen(prev => !prev)}
+              className="w-full flex items-center justify-between px-2 py-1.5"
+            >
+              <p className="text-xs text-gray-400">플레이어</p>
+              <span className="text-gray-500 text-[10px]">{playersOpen ? '▲' : '▼'}</span>
+            </button>
+            {playersOpen && (
+              <div className="space-y-1 px-2 pb-2">
+                {gameState.players.map(p => (
+                  <div key={p.id} className={`flex items-center gap-1 ${p.id === gameState.currentPlayerId ? 'opacity-100' : 'opacity-50'}`}>
+                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: p.color }} />
+                    <span className={`text-xs ${p.id === myId ? 'font-bold text-white' : 'text-gray-300'}`}>
+                      {p.name.length > 6 ? p.name.slice(0, 6) + '…' : p.name}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Settings */}
